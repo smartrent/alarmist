@@ -1,13 +1,13 @@
 defmodule Alarmist.Rules.Standard do
   @moduledoc """
   Rule definition module for "Standard" alarm rules.
-  (Either raised, or not, subscribers will recieve all raise events)
+  (Either raised, or not, subscribers will receive all raise events)
 
   Config example:
   ```
-  # Configuration for a standard alarm that clears itself after 60 seconds
+  # Configuration for a standard alarm, they take no parameters
   [
-    {:alarm, :my_standard_alarm, [clear_after: 60_000]}
+    {:alarm, :my_standard_alarm, []}
   ]
   ```
 
@@ -19,7 +19,7 @@ defmodule Alarmist.Rules.Standard do
   @behaviour Rule
 
   @impl Rule
-  def default_options(), do: [clear_after: :never]
+  def default_options(), do: []
 
   @impl Rule
   def validate({:alarm, _name, _options}) do

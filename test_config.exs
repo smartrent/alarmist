@@ -8,10 +8,7 @@
 
 [
   # One shot
-  {:alarm, :test_standard_alarm,
-   [
-     clear_after: 15_000
-   ]},
+  {:alarm, :test_standard_alarm, []},
 
   # Check-in
   {:check_in, :test_check_in_alarm,
