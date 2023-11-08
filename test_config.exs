@@ -20,8 +20,7 @@
   {:flapping, :test_flap_alarm,
    [
      interval: 5_000,
-     raise_limit: 10,
-     clear_after: 10_000
+     threshold: 10,
    ]},
 
   # Heartbeat

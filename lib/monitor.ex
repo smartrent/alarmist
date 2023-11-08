@@ -18,7 +18,8 @@ defmodule Alarmist.Monitor do
   @type alarm_type :: :alarm
 
   @rule_type_modules %{
-    alarm: Rules.Standard
+    alarm: Rules.Standard,
+    flapping: Rules.Flapping
   }
   @table_name Alarmist.Storage
 
@@ -83,8 +84,15 @@ defmodule Alarmist.Monitor do
   end
 
   @impl :gen_event
+  def handle_info({:reset_counter, alarm_name}, state) do
+    :ok = PropertyTable.put(@table_name, [alarm_name, :counter], 0)
+    {:ok, state}
+  end
+
+  @impl :gen_event
   def handle_call(_request, state) do
-    {:ok, :noop, state}
+    # Noop
+    {:ok, :ok, state}
   end
 
   defp validate_and_setup_rules(rules) do
@@ -111,9 +119,8 @@ defmodule Alarmist.Monitor do
   end
 
   defp process_side_effect({:clear, alarm_name}) do
-    level = get_alarm_level(alarm_name)
     :ok = clear_alarm(alarm_name)
-    Logger.log(level, "Alarm has been raised: #{alarm_name}")
+    Logger.info("Alarm has been cleared: #{alarm_name}")
   end
 
   #### Alarm Storage Utility Functions
