@@ -37,10 +37,7 @@ defmodule Alarmist.Rules.Heartbeat do
     defaults = default_options()
     interval = Keyword.get(options, :interval, defaults[:interval])
 
-    # Flapping alarms need to set up an interval to send messages to the Monitor
-    {:ok, timer_ref} = :timer.apply_interval(interval, __MODULE__, :check_heartbeat, [name])
-    IO.inspect(timer_ref)
-    []
+    [{:add_check_interval, interval, name}]
   end
 
   @impl Rule
@@ -55,16 +52,14 @@ defmodule Alarmist.Rules.Heartbeat do
     [{:clear, name}]
   end
 
-  @doc """
-  Checks a counter's heartbeat
-  """
-  def check_heartbeat(alarm_name) do
-    counter = PropertyTable.get(Alarmist.Storage, [alarm_name, :counter], 0)
+  @impl Rule
+  def on_check({:heartbeat, name, _options}, _monitor_state) do
+    current_counter_value = PropertyTable.get(Alarmist.Storage, [name, :counter], 0)
 
-    if counter <= 0 do
-      :gen_event.call(:alarm_handler, Alarmist.Monitor, {:raise, alarm_name})
+    if current_counter_value <= 0 do
+      [{:raise, name}, {:reset_counter, name}]
+    else
+      [{:reset_counter, name}]
     end
-
-    :gen_event.call(:alarm_handler, Alarmist.Monitor, {:reset_counter, alarm_name})
   end
 end

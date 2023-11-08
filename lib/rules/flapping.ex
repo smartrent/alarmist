@@ -43,30 +43,33 @@ defmodule Alarmist.Rules.Flapping do
     defaults = default_options()
     interval = Keyword.get(options, :interval, defaults[:interval])
 
-    # Flapping alarms need to set up an interval to send messages to the Monitor
-    :timer.send_interval(interval, :alarm_handler, {:reset_counter, name})
-
-    # No side effects
-    []
+    # Flapping alarms need to set up a check interval
+    [{:add_check_interval, interval, name}]
   end
 
   @impl Rule
-  def on_set({:flapping, name, options}, _monitor_state) do
-    defaults = default_options()
-    threshold = Keyword.get(options, :threshold, defaults[:threshold])
-
-    set_counter_value = PropertyTable.get(Alarmist.Storage, [name, :counter], 0)
-
-    if set_counter_value > threshold do
-      # We're above the threshold, raise the alarm
-      [{:raise, name}]
-    else
-      [{:increment_counter, name}]
-    end
+  def on_set({:flapping, name, _options}, _monitor_state) do
+    # Each set will increment the counter
+    [{:increment_counter, name}]
   end
 
   @impl Rule
   def on_clear({:flapping, name, _options}, _monitor_state) do
     [{:clear, name}]
+  end
+
+  @impl Rule
+  def on_check({:flapping, name, options}, _monitor_state) do
+    defaults = default_options()
+    threshold = Keyword.get(options, :threshold, defaults[:threshold])
+
+    current_counter_value = PropertyTable.get(Alarmist.Storage, [name, :counter], 0)
+
+    if current_counter_value > threshold do
+      # Counter is above the configured threshold, raise the alarm
+      [{:raise, name}, {:reset_counter, name}]
+    else
+      [{:reset_counter, name}]
+    end
   end
 end

@@ -42,4 +42,10 @@ defmodule Alarmist.Rules.Standard do
   def on_clear({:alarm, name, _options}, _monitor_state) do
     [{:clear, name}]
   end
+
+  @impl Rule
+  def on_check(_rule_definition, _monitor_state) do
+    # No checking to be done on standard alarms
+    []
+  end
 end

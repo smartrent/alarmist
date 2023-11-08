@@ -84,14 +84,17 @@ defmodule Alarmist.Monitor do
   end
 
   @impl :gen_event
-  def handle_info(side_effect, state) do
-    process_side_effect(side_effect)
+  def handle_info({:check_alarm, alarm_name}, state) do
+    alarm_type = get_alarm_type(alarm_name)
+    alarm_def = {alarm_type, alarm_name, get_alarm_options(alarm_name)}
+    effects = @rule_type_modules[alarm_type].on_check(alarm_def, state)
+    Enum.each(effects, &process_side_effect/1)
     {:ok, state}
   end
 
   @impl :gen_event
-  def handle_call(side_effect, state) do
-    process_side_effect(side_effect)
+  def handle_call(_request, state) do
+    # No-op
     {:ok, :ok, state}
   end
 
@@ -132,10 +135,17 @@ defmodule Alarmist.Monitor do
     :ok = PropertyTable.put(@table_name, [alarm_name, :counter], current_value + 1)
   end
 
+  defp process_side_effect({:add_check_interval, time_ms, alarm_name}) do
+    {:ok, timer_ref} = :timer.send_interval(time_ms, :alarm_handler, {:check_alarm, alarm_name})
+    :ok = PropertyTable.put(@table_name, [alarm_name, :check_timer], timer_ref)
+  end
+
   #### Alarm Storage Utility Functions
 
   defp register_alarm({type, name, options} = rule_def) do
-    @rule_type_modules[type].setup(rule_def)
+    # Setup the alarm, evaluate all side effects
+    effects = @rule_type_modules[type].setup(rule_def)
+    Enum.each(effects, &process_side_effect/1)
 
     if alarm_exists?(name) do
       :ok

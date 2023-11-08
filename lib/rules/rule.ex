@@ -9,6 +9,7 @@ defmodule Alarmist.Rules.Rule do
           | {:clear, atom()}
           | {:increment_counter, atom()}
           | {:clear_counter, atom()}
+          | {:add_check_interval, pos_integer(), atom()}
 
   @doc """
   Returns a keyword list of default option values that will be merged into the configured rule options
@@ -37,4 +38,10 @@ defmodule Alarmist.Rules.Rule do
   See `Alarmist.Rules.Rule.side_effect()` for more information on possible side-effects
   """
   @callback on_clear(rule_definition(), map()) :: list(side_effect())
+
+  @doc """
+  This function is only called when the Alarmist Monitor process is instructed to check in on the alarm's state.
+  This is used for Flapping, Heartbeat, and Check-In alarms only, and is usually called using an interval timer.
+  """
+  @callback on_check(rule_definition(), map()) :: list(side_effect())
 end
