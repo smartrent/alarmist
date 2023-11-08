@@ -4,7 +4,11 @@ defmodule Alarmist.Rules.Rule do
   """
 
   @type rule_definition :: {atom(), atom(), keyword()}
-  @type side_effect :: {:raise, atom()} | {:clear, atom()} | {:clear_counter, atom()}
+  @type side_effect ::
+          {:raise, atom()}
+          | {:clear, atom()}
+          | {:increment_counter, atom()}
+          | {:clear_counter, atom()}
 
   @doc """
   Returns a keyword list of default option values that will be merged into the configured rule options

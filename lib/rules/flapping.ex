@@ -61,8 +61,7 @@ defmodule Alarmist.Rules.Flapping do
       # We're above the threshold, raise the alarm
       [{:raise, name}]
     else
-      :ok = PropertyTable.put(Alarmist.Storage, [name, :counter], set_counter_value + 1)
-      []
+      [{:increment_counter, name}]
     end
   end
 

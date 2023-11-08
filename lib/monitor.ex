@@ -84,8 +84,8 @@ defmodule Alarmist.Monitor do
   end
 
   @impl :gen_event
-  def handle_info({:reset_counter, alarm_name}, state) do
-    :ok = PropertyTable.put(@table_name, [alarm_name, :counter], 0)
+  def handle_info(side_effect, state) do
+    process_side_effect(side_effect)
     {:ok, state}
   end
 
@@ -121,6 +121,15 @@ defmodule Alarmist.Monitor do
   defp process_side_effect({:clear, alarm_name}) do
     :ok = clear_alarm(alarm_name)
     Logger.info("Alarm has been cleared: #{alarm_name}")
+  end
+
+  defp process_side_effect({:reset_counter, alarm_name}) do
+    :ok = PropertyTable.put(@table_name, [alarm_name, :counter], 0)
+  end
+
+  defp process_side_effect({:increment_counter, alarm_name}) do
+    current_value = PropertyTable.get(@table_name, [alarm_name, :counter], 0)
+    :ok = PropertyTable.put(@table_name, [alarm_name, :counter], current_value + 1)
   end
 
   #### Alarm Storage Utility Functions
