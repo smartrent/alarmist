@@ -3,7 +3,6 @@ defmodule BasicAlarmTest do
 
   alias Alarmist.Monitor
 
-  @table_name Alarmist.Storage
   @timeout 500
 
   describe "Standard alarms" do
@@ -16,7 +15,7 @@ defmodule BasicAlarmTest do
       Alarmist.subscribe(alarm_name)
       :alarm_handler.set_alarm(alarm_name)
 
-      assert_receive %PropertyTable.Event{property: [alarm_name, :raised]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_name, :raised]} = _event, @timeout
     end
 
     test "should register when non-existent at runtime" do
@@ -25,7 +24,7 @@ defmodule BasicAlarmTest do
       Alarmist.subscribe(alarm_name)
       :alarm_handler.set_alarm(alarm_name)
 
-      assert_receive %PropertyTable.Event{property: [alarm_name, :raised]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_name, :raised]} = _event, @timeout
     end
 
     test "should clear properly at runtime" do
@@ -37,11 +36,11 @@ defmodule BasicAlarmTest do
       Alarmist.subscribe(alarm_name)
       :alarm_handler.set_alarm(alarm_name)
 
-      assert_receive %PropertyTable.Event{property: [alarm_name, :raised]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_name, :raised]} = _event, @timeout
 
       :alarm_handler.clear_alarm(alarm_name)
 
-      assert_receive %PropertyTable.Event{property: [alarm_name, :cleared]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_name, :cleared]} = _event, @timeout
     end
   end
 end
