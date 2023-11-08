@@ -19,6 +19,7 @@ defmodule Alarmist.Monitor do
   @rule_type_modules %{
     alarm: Rules.Standard,
     flapping: Rules.Flapping,
+    check_in: Rules.CheckIn,
     heartbeat: Rules.Heartbeat
   }
   @table_name Alarmist.Storage
