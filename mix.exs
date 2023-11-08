@@ -37,7 +37,7 @@ defmodule Alarmist.MixProject do
     [
       {:property_table, "~> 0.2.4"},
       {:ex_doc, "~> 0.27", only: :docs, runtime: false},
-      {:credo, "~> 1.6", only: :dev, runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
