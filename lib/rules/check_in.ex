@@ -10,7 +10,7 @@ defmodule Alarmist.Rules.CheckIn do
   ]
   ```
 
-  Check-In alarms are raised if `:alarm_handler.set_alarm(alarm_name)` is not called without `:timeout` seconds of Alarmist starting up.
+  Check-In alarms are raised if `:alarm_handler.set_alarm(alarm_name)` is not called without `:timeout` milliseconds of Alarmist starting up.
   """
   @behaviour Alarmist.Rules.Rule
 

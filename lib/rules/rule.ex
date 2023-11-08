@@ -1,6 +1,15 @@
 defmodule Alarmist.Rules.Rule do
   @moduledoc """
-  Behaviour module for Alarmist alarm rule definitions
+  Behaviour module for Alarmist alarm rule definitions. It's used to define validation, setup, set/clear, and check logic for each alarm type.
+  Rule callbacks can return a list of side-effects that change the state of Alarmist.
+
+  Side-Effects:
+
+    * `{:raise, alarm_name}` - Raises `alarm_name` immediately, notifying all subscriber processes.
+    * `{:clear, alarm_name}` - Clears the raised status of `alarm_name` immediately, notifying all subscriber processes.
+    * `{:increment_counter, alarm_name}` - Increments the counter of an alarm by 1, the counter is arbitrary and is not a count of how many times it has been raised.
+    * `{:reset_counter, alarm_name}` - Resets the counter of an alarm to 0.
+    * `{:add_check_interval, time_ms, alarm_name}` - Adds a timer to the alarm, every `time_ms` interval the `on_check/1` function of the rule module will be called.
   """
 
   @type rule_definition :: {atom(), atom(), keyword()}

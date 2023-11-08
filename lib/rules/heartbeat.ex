@@ -1,16 +1,16 @@
 defmodule Alarmist.Rules.Heartbeat do
   @moduledoc """
-  Rule definition module for "Heatbeat" alarms.
+  Rule definition module for "Heartbeat" alarms.
 
   Config example:
   ```
   # Configuration for a heartbeat alarm that will raise if 5 seconds go by without the alarm being set
   [
-    {:heatbeat, :heartbeat_alarm, [interval: 5_000]}
+    {:heartbeat, :heartbeat_alarm, [interval: 5_000]}
   ]
   ```
 
-  Heartbeat alarms are raised if they are not set using `:alarm_handler.set_alarm(alarm_name)` at least once each `:interval` period.
+  Heartbeat alarms are raised if they are not set using `:alarm_handler.set_alarm(alarm_name)` at least once every `:interval` period.
   """
   @behaviour Alarmist.Rules.Rule
 
