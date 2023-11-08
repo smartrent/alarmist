@@ -118,7 +118,9 @@ defmodule Alarmist.Monitor do
 
   #### Alarm Storage Utility Functions
 
-  defp register_alarm({type, name, options} = _rule_def) do
+  defp register_alarm({type, name, options} = rule_def) do
+    @rule_type_modules[type].setup(rule_def)
+
     if alarm_exists?(name) do
       :ok
     else
