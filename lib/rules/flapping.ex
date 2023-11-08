@@ -12,10 +12,10 @@ defmodule Alarmist.Rules.Flapping do
 
   Flapping alarms are raised when the alarm is set using `:alarm_handler.set_alarm(alarm_name)` more than `:threshold` times in an `:interval` period.
   """
-  require Logger
-  alias Alarmist.Rules.Rule
+  @behaviour Alarmist.Rules.Rule
 
-  @behaviour Rule
+  alias Alarmist.Rules.Rule
+  require Logger
 
   @impl Rule
   def default_options(), do: [interval: 10_000, threshold: 5]

@@ -13,10 +13,10 @@ defmodule Alarmist.Rules.Standard do
 
   Standard alarms are raised directly when set using :alarm_handler.set_alarm(alarm_name)
   """
-  require Logger
-  alias Alarmist.Rules.Rule
+  @behaviour Alarmist.Rules.Rule
 
-  @behaviour Rule
+  alias Alarmist.Rules.Rule
+  require Logger
 
   @impl Rule
   def default_options(), do: []

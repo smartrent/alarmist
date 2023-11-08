@@ -9,12 +9,12 @@ defmodule Alarmist.Monitor do
     - "raise" - An alarm is "raised" whenever a rule condition is matched
 
   """
+  @behaviour :gen_event
+
   alias Alarmist.Rules
   require Logger
 
-  @behaviour :gen_event
-
-  @type alarm_type :: :alarm
+  @type alarm_type :: :alarm | :flapping | :heartbeat
 
   @rule_type_modules %{
     alarm: Rules.Standard,

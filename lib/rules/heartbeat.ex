@@ -12,10 +12,10 @@ defmodule Alarmist.Rules.Heartbeat do
 
   Heartbeat alarms are raised if they are not set using `:alarm_handler.set_alarm(alarm_name)` at least once each `:interval` period.
   """
-  require Logger
-  alias Alarmist.Rules.Rule
+  @behaviour Alarmist.Rules.Rule
 
-  @behaviour Rule
+  alias Alarmist.Rules.Rule
+  require Logger
 
   @impl Rule
   def default_options(), do: [interval: 5_000]
