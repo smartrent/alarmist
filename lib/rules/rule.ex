@@ -8,7 +8,7 @@ defmodule Alarmist.Rules.Rule do
           {:raise, atom()}
           | {:clear, atom()}
           | {:increment_counter, atom()}
-          | {:clear_counter, atom()}
+          | {:reset_counter, atom()}
           | {:add_check_interval, pos_integer(), atom()}
 
   @doc """
