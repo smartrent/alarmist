@@ -8,7 +8,6 @@ defmodule Alarmist.Monitor do
     - "set" - An alarm is "set" whenever :alarm_handler.set_alarm(term) is called
     - "raise" - An alarm is "raised" whenever a rule condition is matched
 
-  Every "rul
   """
   alias Alarmist.Rules
   require Logger
@@ -19,7 +18,8 @@ defmodule Alarmist.Monitor do
 
   @rule_type_modules %{
     alarm: Rules.Standard,
-    flapping: Rules.Flapping
+    flapping: Rules.Flapping,
+    heartbeat: Rules.Heartbeat
   }
   @table_name Alarmist.Storage
 
@@ -90,8 +90,8 @@ defmodule Alarmist.Monitor do
   end
 
   @impl :gen_event
-  def handle_call(_request, state) do
-    # Noop
+  def handle_call(side_effect, state) do
+    process_side_effect(side_effect)
     {:ok, :ok, state}
   end
 
@@ -104,7 +104,7 @@ defmodule Alarmist.Monitor do
             Map.put(acc, name, rule)
 
           {:error, reason} ->
-            Logger.error("Failed to validate Alarmist rule: #{reason}")
+            Logger.error("Alarm rule #{inspect(name)} failed to validate: #{reason}")
             acc
         end
       end)
