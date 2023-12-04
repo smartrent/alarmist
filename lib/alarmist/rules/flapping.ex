@@ -50,8 +50,8 @@ defmodule Alarmist.Rules.Flapping do
 
   @impl Rule
   def on_set({:flapping, name, _options}, _monitor_state) do
-    last_event = PropertyTable.get(Alarmist.Storage, [name, :last_event], :none)
-    :ok = PropertyTable.put(Alarmist.Storage, [name, :last_event], :set)
+    last_event = PropertyTable.get(Alarmist, [name, :last_event], :none)
+    :ok = PropertyTable.put(Alarmist, [name, :last_event], :set)
 
     if last_event == :none or last_event == :clear do
       # We count the first "set" as an event
@@ -65,7 +65,7 @@ defmodule Alarmist.Rules.Flapping do
 
   @impl Rule
   def on_clear({:flapping, name, _options}, _monitor_state) do
-    PropertyTable.put(Alarmist.Storage, [name, :last_event], :clear)
+    PropertyTable.put(Alarmist, [name, :last_event], :clear)
     []
   end
 
@@ -73,8 +73,8 @@ defmodule Alarmist.Rules.Flapping do
   def on_check({:flapping, name, options}, _monitor_state) do
     defaults = default_options()
     threshold = Keyword.get(options, :threshold, defaults[:threshold])
-    current_alarm_state = PropertyTable.get(Alarmist.Storage, [name, :status], :clear)
-    current_event_count = PropertyTable.get(Alarmist.Storage, [name, :counter], 0)
+    current_alarm_state = PropertyTable.get(Alarmist, [name, :status], :clear)
+    current_event_count = PropertyTable.get(Alarmist, [name, :counter], 0)
 
     cond do
       # Within this interval, if we fell below the threshold, and the alarm is raised, clear it

@@ -22,19 +22,12 @@ defmodule Alarmist.Monitor do
     check_in: Rules.CheckIn,
     heartbeat: Rules.Heartbeat
   }
-  @table_name Alarmist.Storage
 
   @impl :gen_event
   def init({options, {:alarm_handler, collected_alarms}}) do
-    {:ok, table_ref} =
-      PropertyTable.start_link(name: @table_name, matcher: Alarmist.Rules.Matcher)
-
     Keyword.get(options, :rules, []) |> validate_and_setup_rules()
 
-    init_state =
-      %{
-        table_ref: table_ref
-      }
+    init_state = %{}
 
     # Process any alarms that were collected before we swapped the handler out with Monitor
     Enum.each(collected_alarms, fn alarm_name ->
@@ -128,17 +121,17 @@ defmodule Alarmist.Monitor do
   end
 
   defp process_side_effect({:reset_counter, alarm_name}) do
-    :ok = PropertyTable.put(@table_name, [alarm_name, :counter], 0)
+    :ok = PropertyTable.put(Alarmist, [alarm_name, :counter], 0)
   end
 
   defp process_side_effect({:increment_counter, alarm_name}) do
-    current_value = PropertyTable.get(@table_name, [alarm_name, :counter], 0)
-    :ok = PropertyTable.put(@table_name, [alarm_name, :counter], current_value + 1)
+    current_value = PropertyTable.get(Alarmist, [alarm_name, :counter], 0)
+    :ok = PropertyTable.put(Alarmist, [alarm_name, :counter], current_value + 1)
   end
 
   defp process_side_effect({:add_check_interval, time_ms, alarm_name}) do
     {:ok, timer_ref} = :timer.send_interval(time_ms, :alarm_handler, {:check_alarm, alarm_name})
-    :ok = PropertyTable.put(@table_name, [alarm_name, :check_timer], timer_ref)
+    :ok = PropertyTable.put(Alarmist, [alarm_name, :check_timer], timer_ref)
   end
 
   #### Alarm Storage Utility Functions
@@ -155,7 +148,7 @@ defmodule Alarmist.Monitor do
 
       :ok =
         PropertyTable.put_many(
-          @table_name,
+          Alarmist,
           [
             {[name, :type], type},
             {[name, :level], level},
@@ -175,10 +168,10 @@ defmodule Alarmist.Monitor do
   defp raise_alarm(alarm_name) do
     if alarm_exists?(alarm_name) do
       now = DateTime.utc_now()
-      current_raise_count = PropertyTable.get(@table_name, [alarm_name, :raised])
+      current_raise_count = PropertyTable.get(Alarmist, [alarm_name, :raised])
 
       PropertyTable.put_many(
-        @table_name,
+        Alarmist,
         [
           {[alarm_name, :raised], current_raise_count + 1},
           {[alarm_name, :status], :raised},
@@ -195,10 +188,10 @@ defmodule Alarmist.Monitor do
   defp clear_alarm(alarm_name) do
     if alarm_exists?(alarm_name) do
       now = DateTime.utc_now()
-      current_clear_count = PropertyTable.get(@table_name, [alarm_name, :cleared])
+      current_clear_count = PropertyTable.get(Alarmist, [alarm_name, :cleared])
 
       :ok =
-        PropertyTable.put_many(@table_name, [
+        PropertyTable.put_many(Alarmist, [
           {[alarm_name, :status], :clear},
           {[alarm_name, :cleared], current_clear_count + 1},
           {[alarm_name, :last_cleared], now}
@@ -210,18 +203,18 @@ defmodule Alarmist.Monitor do
   end
 
   defp alarm_exists?(alarm_name) do
-    PropertyTable.get(@table_name, [alarm_name, :status]) != nil
+    PropertyTable.get(Alarmist, [alarm_name, :status]) != nil
   end
 
   defp get_alarm_options(alarm_name) do
-    PropertyTable.get(@table_name, [alarm_name, :options], [])
+    PropertyTable.get(Alarmist, [alarm_name, :options], [])
   end
 
   defp get_alarm_type(alarm_name) do
-    PropertyTable.get(@table_name, [alarm_name, :type], :alarm)
+    PropertyTable.get(Alarmist, [alarm_name, :type], :alarm)
   end
 
   defp get_alarm_level(alarm_name) do
-    PropertyTable.get(@table_name, [alarm_name, :level], :error)
+    PropertyTable.get(Alarmist, [alarm_name, :level], :error)
   end
 end

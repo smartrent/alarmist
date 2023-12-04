@@ -52,10 +52,10 @@ defmodule Alarmist.Rules.CheckIn do
 
   @impl Rule
   def on_check({:check_in, name, _options}, _monitor_state) do
-    timer_ref = PropertyTable.get(Alarmist.Storage, [name, :check_timer])
+    timer_ref = PropertyTable.get(Alarmist, [name, :check_timer])
     {:ok, :cancel} = :timer.cancel(timer_ref)
 
-    current_counter_value = PropertyTable.get(Alarmist.Storage, [name, :counter], 0)
+    current_counter_value = PropertyTable.get(Alarmist, [name, :counter], 0)
 
     if current_counter_value <= 0 do
       [{:raise, name}]

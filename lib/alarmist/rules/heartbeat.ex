@@ -54,7 +54,7 @@ defmodule Alarmist.Rules.Heartbeat do
 
   @impl Rule
   def on_check({:heartbeat, name, _options}, _monitor_state) do
-    current_counter_value = PropertyTable.get(Alarmist.Storage, [name, :counter], 0)
+    current_counter_value = PropertyTable.get(Alarmist, [name, :counter], 0)
 
     if current_counter_value <= 0 do
       [{:raise, name}, {:reset_counter, name}]

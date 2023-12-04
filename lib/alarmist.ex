@@ -20,7 +20,10 @@ defmodule Alarmist do
         {Alarmist.Monitor, config}
       )
 
-    {:ok, Process.whereis(:alarm_handler)}
+    children = [{PropertyTable, name: Alarmist, matcher: Alarmist.Rules.Matcher}]
+
+    opts = [strategy: :one_for_one, name: Alarmist.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 
   @doc """
@@ -29,8 +32,8 @@ defmodule Alarmist do
   @spec subscribe(atom()) :: :ok
   def subscribe(alarm_name) when is_atom(alarm_name) do
     Monitor.ensure_registered(alarm_name)
-    PropertyTable.subscribe(Alarmist.Storage, [alarm_name, :raised])
-    PropertyTable.subscribe(Alarmist.Storage, [alarm_name, :cleared])
+    PropertyTable.subscribe(Alarmist, [alarm_name, :raised])
+    PropertyTable.subscribe(Alarmist, [alarm_name, :cleared])
   end
 
   @doc """
@@ -39,7 +42,7 @@ defmodule Alarmist do
   @spec unsubscribe(atom()) :: :ok
   def unsubscribe(alarm_name) when is_atom(alarm_name) do
     Monitor.ensure_registered(alarm_name)
-    PropertyTable.unsubscribe(Alarmist.Storage, [alarm_name, :raised])
-    PropertyTable.unsubscribe(Alarmist.Storage, [alarm_name, :cleared])
+    PropertyTable.unsubscribe(Alarmist, [alarm_name, :raised])
+    PropertyTable.unsubscribe(Alarmist, [alarm_name, :cleared])
   end
 end
