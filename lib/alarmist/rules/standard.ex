@@ -11,7 +11,7 @@ defmodule Alarmist.Rules.Standard do
   ]
   ```
 
-  Standard alarms are raised directly when set using :alarm_handler.set_alarm(alarm_name)
+  Standard alarms are raised directly when set using :alarm_handler.set_alarm({alarm_id, description})
   """
   @behaviour Alarmist.Rules.Rule
 

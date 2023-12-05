@@ -30,8 +30,8 @@ defmodule Alarmist.Monitor do
     init_state = %{}
 
     # Process any alarms that were collected before we swapped the handler out with Monitor
-    Enum.each(collected_alarms, fn alarm_name ->
-      handle_event({:set_alarm, alarm_name}, init_state)
+    Enum.each(collected_alarms, fn alarm ->
+      handle_event({:set_alarm, alarm}, init_state)
     end)
 
     Logger.debug("Alarmist monitor handler has started!")
@@ -42,45 +42,47 @@ defmodule Alarmist.Monitor do
   @doc """
   Ensures an alarm is registered as _at least_ a standard alarm, does not change existing registered alarms.
   """
-  @spec ensure_registered(any()) :: :ok
-  def ensure_registered(alarm_name) do
-    if alarm_exists?(alarm_name) do
+  @spec ensure_registered(Alarmist.alarm_id()) :: :ok
+  def ensure_registered(alarm_id) do
+    if alarm_exists?(alarm_id) do
       :ok
     else
-      register_new_alarm({:alarm, alarm_name, []})
+      register_new_alarm({:alarm, alarm_id, []})
     end
   end
 
   @doc """
   Registers a new alarm rule at runtime, registering rules with application config is preferred over this.
   """
-  @spec register_new_alarm({alarm_type(), atom(), keyword()}) :: :ok
-  def register_new_alarm({type, name, _options} = rule) when is_atom(type) and is_atom(name) do
+  @spec register_new_alarm({alarm_type(), Alarmist.alarm_id(), keyword()}) :: :ok
+  def register_new_alarm({type, alarm_id, _options} = rule)
+      when is_atom(type) and is_atom(alarm_id) do
     _ = validate_and_setup_rules([rule])
     :ok
   end
 
   @impl :gen_event
-  def handle_event({:set_alarm, alarm_name}, state) do
-    alarm_type = get_alarm_type(alarm_name)
-    alarm_def = {alarm_type, alarm_name, get_alarm_options(alarm_name)}
+  def handle_event({:set_alarm, alarm}, state) do
+    alarm_id = get_alarm_id(alarm)
+    alarm_type = get_alarm_type(alarm_id)
+    alarm_def = {alarm_type, alarm_id, get_alarm_options(alarm_id)}
     effects = @rule_type_modules[alarm_type].on_set(alarm_def, state)
     Enum.each(effects, &process_side_effect/1)
     {:ok, state}
   end
 
-  def handle_event({:clear_alarm, alarm_name}, state) do
-    alarm_type = get_alarm_type(alarm_name)
-    alarm_def = {alarm_type, alarm_name, get_alarm_options(alarm_name)}
+  def handle_event({:clear_alarm, alarm_id}, state) do
+    alarm_type = get_alarm_type(alarm_id)
+    alarm_def = {alarm_type, alarm_id, get_alarm_options(alarm_id)}
     effects = @rule_type_modules[alarm_type].on_clear(alarm_def, state)
     Enum.each(effects, &process_side_effect/1)
     {:ok, state}
   end
 
   @impl :gen_event
-  def handle_info({:check_alarm, alarm_name}, state) do
-    alarm_type = get_alarm_type(alarm_name)
-    alarm_def = {alarm_type, alarm_name, get_alarm_options(alarm_name)}
+  def handle_info({:check_alarm, alarm_id}, state) do
+    alarm_type = get_alarm_type(alarm_id)
+    alarm_def = {alarm_type, alarm_id, get_alarm_options(alarm_id)}
     effects = @rule_type_modules[alarm_type].on_check(alarm_def, state)
     Enum.each(effects, &process_side_effect/1)
     {:ok, state}
@@ -109,39 +111,39 @@ defmodule Alarmist.Monitor do
     valid_rules
   end
 
-  defp process_side_effect({:raise, alarm_name}) do
-    level = get_alarm_level(alarm_name)
-    :ok = raise_alarm(alarm_name)
-    Logger.log(level, "Alarm has been raised: #{alarm_name}")
+  defp process_side_effect({:raise, alarm_id}) do
+    level = get_alarm_level(alarm_id)
+    :ok = raise_alarm(alarm_id)
+    Logger.log(level, "Alarm has been raised: #{alarm_id}")
   end
 
-  defp process_side_effect({:clear, alarm_name}) do
-    :ok = clear_alarm(alarm_name)
-    Logger.info("Alarm has been cleared: #{alarm_name}")
+  defp process_side_effect({:clear, alarm_id}) do
+    :ok = clear_alarm(alarm_id)
+    Logger.info("Alarm has been cleared: #{alarm_id}")
   end
 
-  defp process_side_effect({:reset_counter, alarm_name}) do
-    :ok = PropertyTable.put(Alarmist, [alarm_name, :counter], 0)
+  defp process_side_effect({:reset_counter, alarm_id}) do
+    :ok = PropertyTable.put(Alarmist, [alarm_id, :counter], 0)
   end
 
-  defp process_side_effect({:increment_counter, alarm_name}) do
-    current_value = PropertyTable.get(Alarmist, [alarm_name, :counter], 0)
-    :ok = PropertyTable.put(Alarmist, [alarm_name, :counter], current_value + 1)
+  defp process_side_effect({:increment_counter, alarm_id}) do
+    current_value = PropertyTable.get(Alarmist, [alarm_id, :counter], 0)
+    :ok = PropertyTable.put(Alarmist, [alarm_id, :counter], current_value + 1)
   end
 
-  defp process_side_effect({:add_check_interval, time_ms, alarm_name}) do
-    {:ok, timer_ref} = :timer.send_interval(time_ms, :alarm_handler, {:check_alarm, alarm_name})
-    :ok = PropertyTable.put(Alarmist, [alarm_name, :check_timer], timer_ref)
+  defp process_side_effect({:add_check_interval, time_ms, alarm_id}) do
+    {:ok, timer_ref} = :timer.send_interval(time_ms, :alarm_handler, {:check_alarm, alarm_id})
+    :ok = PropertyTable.put(Alarmist, [alarm_id, :check_timer], timer_ref)
   end
 
   #### Alarm Storage Utility Functions
 
-  defp register_alarm({type, name, options} = rule_def) do
+  defp register_alarm({type, alarm_id, options} = rule_def) do
     # Setup the alarm, evaluate all side effects
     effects = @rule_type_modules[type].setup(rule_def)
     Enum.each(effects, &process_side_effect/1)
 
-    if alarm_exists?(name) do
+    if alarm_exists?(alarm_id) do
       :ok
     else
       level = Keyword.get(options, :level, :error)
@@ -150,71 +152,76 @@ defmodule Alarmist.Monitor do
         PropertyTable.put_many(
           Alarmist,
           [
-            {[name, :type], type},
-            {[name, :level], level},
-            {[name, :options], options},
-            {[name, :status], :clear},
-            {[name, :raised], 0},
-            {[name, :cleared], 0},
-            {[name, :last_cleared], :never},
-            {[name, :last_raised], :never}
+            {[alarm_id, :type], type},
+            {[alarm_id, :level], level},
+            {[alarm_id, :options], options},
+            {[alarm_id, :status], :clear},
+            {[alarm_id, :raised], 0},
+            {[alarm_id, :cleared], 0},
+            {[alarm_id, :last_cleared], :never},
+            {[alarm_id, :last_raised], :never}
           ]
         )
 
-      Logger.debug("Alarmist has registered alarm: #{name}")
+      Logger.debug("Alarmist has registered alarm: #{alarm_id}")
     end
   end
 
-  defp raise_alarm(alarm_name) do
-    if alarm_exists?(alarm_name) do
+  defp raise_alarm(alarm_id) do
+    if alarm_exists?(alarm_id) do
       now = DateTime.utc_now()
-      current_raise_count = PropertyTable.get(Alarmist, [alarm_name, :raised])
+      current_raise_count = PropertyTable.get(Alarmist, [alarm_id, :raised])
 
       PropertyTable.put_many(
         Alarmist,
         [
-          {[alarm_name, :raised], current_raise_count + 1},
-          {[alarm_name, :status], :raised},
-          {[alarm_name, :last_raised], now}
+          {[alarm_id, :raised], current_raise_count + 1},
+          {[alarm_id, :status], :raised},
+          {[alarm_id, :last_raised], now}
         ]
       )
     else
       # We haven't seen this alarm before, create a standard alarm, and then raise it
-      :ok = register_new_alarm({:alarm, alarm_name, []})
-      raise_alarm(alarm_name)
+      :ok = register_new_alarm({:alarm, alarm_id, []})
+      raise_alarm(alarm_id)
     end
   end
 
-  defp clear_alarm(alarm_name) do
-    if alarm_exists?(alarm_name) do
+  defp clear_alarm(alarm_id) do
+    if alarm_exists?(alarm_id) do
       now = DateTime.utc_now()
-      current_clear_count = PropertyTable.get(Alarmist, [alarm_name, :cleared])
+      current_clear_count = PropertyTable.get(Alarmist, [alarm_id, :cleared])
 
       :ok =
         PropertyTable.put_many(Alarmist, [
-          {[alarm_name, :status], :clear},
-          {[alarm_name, :cleared], current_clear_count + 1},
-          {[alarm_name, :last_cleared], now}
+          {[alarm_id, :status], :clear},
+          {[alarm_id, :cleared], current_clear_count + 1},
+          {[alarm_id, :last_cleared], now}
         ])
     else
       # We haven't seen this alarm before, register it, and it will start cleared
-      :ok = register_new_alarm({:alarm, alarm_name, []})
+      :ok = register_new_alarm({:alarm, alarm_id, []})
     end
   end
 
-  defp alarm_exists?(alarm_name) do
-    PropertyTable.get(Alarmist, [alarm_name, :status]) != nil
+  # Return the alarm_id from an alarm. The idiomatic case is first.
+  defp get_alarm_id({alarm_id, _description}), do: alarm_id
+  defp get_alarm_id(alarm) when is_tuple(alarm), do: elem(alarm, 0)
+  defp get_alarm_id(alarm_id), do: alarm_id
+
+  defp alarm_exists?(alarm_id) do
+    PropertyTable.get(Alarmist, [alarm_id, :status]) != nil
   end
 
-  defp get_alarm_options(alarm_name) do
-    PropertyTable.get(Alarmist, [alarm_name, :options], [])
+  defp get_alarm_options(alarm_id) do
+    PropertyTable.get(Alarmist, [alarm_id, :options], [])
   end
 
-  defp get_alarm_type(alarm_name) do
-    PropertyTable.get(Alarmist, [alarm_name, :type], :alarm)
+  defp get_alarm_type(alarm_id) do
+    PropertyTable.get(Alarmist, [alarm_id, :type], :alarm)
   end
 
-  defp get_alarm_level(alarm_name) do
-    PropertyTable.get(Alarmist, [alarm_name, :level], :error)
+  defp get_alarm_level(alarm_id) do
+    PropertyTable.get(Alarmist, [alarm_id, :level], :error)
   end
 end

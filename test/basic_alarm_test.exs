@@ -8,39 +8,51 @@ defmodule BasicAlarmTest do
   describe "Standard alarms" do
     test "should register and raise at runtime" do
       alarm_type = :alarm
-      alarm_name = :test_standard_alarm
-      alarm_config = {alarm_type, alarm_name, []}
+      alarm_id = :test_standard_alarm
+      alarm_config = {alarm_type, alarm_id, []}
       :ok = Monitor.register_new_alarm(alarm_config)
 
-      Alarmist.subscribe(alarm_name)
-      :alarm_handler.set_alarm(alarm_name)
+      Alarmist.subscribe(alarm_id)
+      :alarm_handler.set_alarm({alarm_id, "testing"})
 
-      assert_receive %PropertyTable.Event{property: [^alarm_name, :raised]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :raised]} = _event, @timeout
+    end
+
+    test "setting atom alarms" do
+      alarm_type = :alarm
+      alarm_id = :test_standard_alarm
+      alarm_config = {alarm_type, alarm_id, []}
+      :ok = Monitor.register_new_alarm(alarm_config)
+
+      Alarmist.subscribe(alarm_id)
+      :alarm_handler.set_alarm(alarm_id)
+
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :raised]} = _event, @timeout
     end
 
     test "should register when non-existent at runtime" do
-      alarm_name = :unregistered_alarm_name
+      alarm_id = :unregistered_alarm_id
 
-      Alarmist.subscribe(alarm_name)
-      :alarm_handler.set_alarm(alarm_name)
+      Alarmist.subscribe(alarm_id)
+      :alarm_handler.set_alarm({alarm_id, "testing"})
 
-      assert_receive %PropertyTable.Event{property: [^alarm_name, :raised]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :raised]} = _event, @timeout
     end
 
     test "should clear properly at runtime" do
       alarm_type = :alarm
-      alarm_name = :test_standard_alarm
-      alarm_config = {alarm_type, alarm_name, []}
+      alarm_id = :test_standard_alarm
+      alarm_config = {alarm_type, alarm_id, []}
       :ok = Monitor.register_new_alarm(alarm_config)
 
-      Alarmist.subscribe(alarm_name)
-      :alarm_handler.set_alarm(alarm_name)
+      Alarmist.subscribe(alarm_id)
+      :alarm_handler.set_alarm({alarm_id, "testing"})
 
-      assert_receive %PropertyTable.Event{property: [^alarm_name, :raised]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :raised]} = _event, @timeout
 
-      :alarm_handler.clear_alarm(alarm_name)
+      :alarm_handler.clear_alarm(alarm_id)
 
-      assert_receive %PropertyTable.Event{property: [^alarm_name, :cleared]} = _event, @timeout
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :cleared]} = _event, @timeout
     end
   end
 end

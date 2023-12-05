@@ -10,7 +10,7 @@ defmodule Alarmist.Rules.Heartbeat do
   ]
   ```
 
-  Heartbeat alarms are raised if they are not set using `:alarm_handler.set_alarm(alarm_name)` at least once every `:interval` period.
+  Heartbeat alarms are raised if they are not set using `:alarm_handler.set_alarm({alarm_id, description})` at least once every `:interval` period.
   """
   @behaviour Alarmist.Rules.Rule
 

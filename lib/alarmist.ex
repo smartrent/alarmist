@@ -6,6 +6,10 @@ defmodule Alarmist do
 
   alias Alarmist.Monitor
 
+  # SASL doesn't define types for these so create them here
+  @type alarm_id() :: any()
+  @type alarm() :: {alarm_id(), any()}
+
   @doc """
   Sets up the Alarmist alarm handler/monitor
   """
@@ -29,20 +33,20 @@ defmodule Alarmist do
   @doc """
   Subscribe the current process to the specified alarm `:raised` and `:cleared` events
   """
-  @spec subscribe(atom()) :: :ok
-  def subscribe(alarm_name) when is_atom(alarm_name) do
-    Monitor.ensure_registered(alarm_name)
-    PropertyTable.subscribe(Alarmist, [alarm_name, :raised])
-    PropertyTable.subscribe(Alarmist, [alarm_name, :cleared])
+  @spec subscribe(alarm_id()) :: :ok
+  def subscribe(alarm_id) when is_atom(alarm_id) do
+    Monitor.ensure_registered(alarm_id)
+    PropertyTable.subscribe(Alarmist, [alarm_id, :raised])
+    PropertyTable.subscribe(Alarmist, [alarm_id, :cleared])
   end
 
   @doc """
   Unsubscribe the current process from the specified alarm `:raised` and `:cleared` events
   """
-  @spec unsubscribe(atom()) :: :ok
-  def unsubscribe(alarm_name) when is_atom(alarm_name) do
-    Monitor.ensure_registered(alarm_name)
-    PropertyTable.unsubscribe(Alarmist, [alarm_name, :raised])
-    PropertyTable.unsubscribe(Alarmist, [alarm_name, :cleared])
+  @spec unsubscribe(alarm_id()) :: :ok
+  def unsubscribe(alarm_id) when is_atom(alarm_id) do
+    Monitor.ensure_registered(alarm_id)
+    PropertyTable.unsubscribe(Alarmist, [alarm_id, :raised])
+    PropertyTable.unsubscribe(Alarmist, [alarm_id, :cleared])
   end
 end
