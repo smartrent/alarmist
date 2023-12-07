@@ -10,6 +10,8 @@ defmodule Alarmist do
   @type alarm_id() :: any()
   @type alarm() :: {alarm_id(), any()}
 
+  @type alarm_state() :: :set | :clear
+
   @doc """
   Sets up the Alarmist alarm handler/monitor
   """
