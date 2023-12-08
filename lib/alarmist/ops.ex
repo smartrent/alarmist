@@ -30,6 +30,26 @@ defmodule Alarmist.Ops do
     end
   end
 
+  @spec logical_or(Engine.t(), list()) :: Engine.t()
+  def logical_or(engine, [output, inputs]) do
+    {engine, value} = do_logical_or(engine, inputs)
+    Engine.cache_put(engine, output, value)
+  end
+
+  defp do_logical_or(engine, []) do
+    {engine, :clear}
+  end
+
+  defp do_logical_or(engine, [input | rest]) do
+    {engine, value} = Engine.cache_get(engine, input)
+
+    if value == :clear do
+      do_logical_or(engine, rest)
+    else
+      {engine, :set}
+    end
+  end
+
   @doc """
   Set an alarm when the input has been set for a specified duration
 

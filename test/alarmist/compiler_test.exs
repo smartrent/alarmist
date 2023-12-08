@@ -17,5 +17,16 @@ defmodule Alarmist.CompilerTest do
 
       assert Compiler.compile(:result_alarm_id, program) == result
     end
+
+    test "and and or" do
+      program = {:and, :alarm_id1, {:or, :alarm_id2, :alarm_id3}}
+
+      result = [
+        {Alarmist.Ops, :logical_or, [{:temp, 1}, :alarm_id2, :alarm_id3]},
+        {Alarmist.Ops, :logical_and, [:result_alarm_id, :alarm_id1, {:temp, 1}]}
+      ]
+
+      assert Compiler.compile(:result_alarm_id, program) == result
+    end
   end
 end
