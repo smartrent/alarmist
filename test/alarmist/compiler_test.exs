@@ -12,18 +12,18 @@ defmodule Alarmist.CompilerTest do
     end
 
     test "and" do
-      program = {:and, :alarm_id1, :alarm_id2}
+      program = [:and, :alarm_id1, :alarm_id2]
       result = [{Alarmist.Ops, :logical_and, [:result_alarm_id, :alarm_id1, :alarm_id2]}]
 
       assert Compiler.compile(:result_alarm_id, program) == result
     end
 
     test "and and or" do
-      program = {:and, :alarm_id1, {:or, :alarm_id2, :alarm_id3}}
+      program = [:and, :alarm_id1, [:or, :alarm_id2, :alarm_id3]]
 
       result = [
-        {Alarmist.Ops, :logical_or, [{:temp, 1}, :alarm_id2, :alarm_id3]},
-        {Alarmist.Ops, :logical_and, [:result_alarm_id, :alarm_id1, {:temp, 1}]}
+        {Alarmist.Ops, :logical_and, [:result_alarm_id, :alarm_id1, :"result_alarm_id.0"]},
+        {Alarmist.Ops, :logical_or, [:"result_alarm_id.0", :alarm_id2, :alarm_id3]}
       ]
 
       assert Compiler.compile(:result_alarm_id, program) == result
