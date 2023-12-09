@@ -32,7 +32,11 @@ defmodule Alarmist.Compiler do
     {m, f, new_args}
   end
 
-  defp do_compile(state, alarm_id) when is_atom(alarm_id), do: {state, alarm_id}
+  defp do_compile(state, alarm_id) when is_atom(alarm_id) do
+    {state, result} = make_variable(state)
+    rule = mf(:copy, [result, alarm_id])
+    {%{state | rules: [rule | state.rules]}, result}
+  end
 
   defp do_compile(state, [op | args]) when op in [:and, :or, :not, :copy] do
     {state, resolved_args} = resolve(state, args)
@@ -55,6 +59,10 @@ defmodule Alarmist.Compiler do
 
   defp resolve(state, [], result) do
     {state, Enum.reverse(result)}
+  end
+
+  defp resolve(state, [alarm_id | rest], result) when is_atom(alarm_id) do
+    resolve(state, rest, [alarm_id | result])
   end
 
   defp resolve(state, [value | rest], result) do
