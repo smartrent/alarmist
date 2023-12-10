@@ -77,7 +77,7 @@ defmodule Alarmist.Engine do
   @spec add_synthetic_alarm(t(), Alarmist.alarm_id(), Compiler.rule_spec()) :: t()
   def add_synthetic_alarm(engine, alarm_id, rule_spec) do
     rules = Compiler.compile(alarm_id, rule_spec)
-    engine = Enum.reduce(rules, engine, fn rule -> link_rule(engine, rule, alarm_id) end)
+    engine = Enum.reduce(rules, engine, fn rule, engine -> link_rule(engine, rule, alarm_id) end)
 
     run(engine, [alarm_id])
   end
@@ -149,7 +149,7 @@ defmodule Alarmist.Engine do
       :error ->
         new_cache = Map.put(engine.cache, alarm_id, value)
         new_changed = [alarm_id | engine.changed_alarm_ids]
-        new_actions = [engine.actions | {value, alarm_id}]
+        new_actions = [{value, alarm_id} | engine.actions]
 
         %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions: new_actions}
     end
