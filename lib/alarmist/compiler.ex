@@ -1,9 +1,9 @@
 defmodule Alarmist.Compiler do
   @moduledoc """
-
+  Compile rule specifications
   """
   @type rule_spec() :: tuple()
-  @type rule() :: tuple()
+  @type rule() :: {module(), atom(), list()}
 
   defstruct [:temp_counter, :result_alarm_id, :rules, :aliases]
 
