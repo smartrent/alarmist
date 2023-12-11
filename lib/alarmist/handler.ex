@@ -80,7 +80,8 @@ defmodule Alarmist.Handler do
   end
 
   # defp run_side_effects(state, actions) do
-  #   # Need to summarize the sets and clears into one `PropertyTable.put_many` to avoid chances of an inconsistent view of the table.
+  #   # Need to summarize the sets and clears into one `PropertyTable.put_many` to avoid chances
+  #   # of an inconsistent view of the table.
   # end
 
   # defp run_side_effect({:set, alarm_id}) do
