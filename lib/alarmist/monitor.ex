@@ -12,6 +12,7 @@ defmodule Alarmist.Monitor do
   @behaviour :gen_event
 
   alias Alarmist.Rules
+
   require Logger
 
   @type alarm_type :: :alarm | :flapping | :heartbeat
@@ -33,8 +34,6 @@ defmodule Alarmist.Monitor do
     Enum.each(collected_alarms, fn alarm ->
       handle_event({:set_alarm, alarm}, init_state)
     end)
-
-    Logger.debug("Alarmist monitor handler has started!")
 
     {:ok, init_state}
   end

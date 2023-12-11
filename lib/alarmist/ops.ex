@@ -7,13 +7,13 @@ defmodule Alarmist.Ops do
   @spec copy(Engine.t(), keyword()) :: Engine.t()
   def copy(engine, [output, input]) do
     {engine, value} = Engine.cache_get(engine, input)
-    Engine.cache_put(engine, output, value)
+    Engine.cache_put(engine, output, value, nil)
   end
 
   @spec logical_and(Engine.t(), keyword()) :: Engine.t()
   def logical_and(engine, [output, inputs]) do
     {engine, value} = do_logical_and(engine, inputs)
-    Engine.cache_put(engine, output, value)
+    Engine.cache_put(engine, output, value, nil)
   end
 
   defp do_logical_and(engine, []) do
@@ -33,7 +33,7 @@ defmodule Alarmist.Ops do
   @spec logical_or(Engine.t(), list()) :: Engine.t()
   def logical_or(engine, [output, inputs]) do
     {engine, value} = do_logical_or(engine, inputs)
-    Engine.cache_put(engine, output, value)
+    Engine.cache_put(engine, output, value, nil)
   end
 
   defp do_logical_or(engine, []) do
@@ -85,7 +85,7 @@ defmodule Alarmist.Ops do
           good_at = duration - (now - Enum.at(new_timestamps, count - 1))
 
           engine
-          |> Engine.cache_put(output, :set)
+          |> Engine.cache_put(output, :set, nil)
           |> Engine.start_timer(output, good_at, :clear)
           |> Engine.set_state(output, new_timestamps)
         else

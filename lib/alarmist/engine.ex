@@ -5,16 +5,28 @@ defmodule Alarmist.Engine do
 
   alias Alarmist.Compiler
 
-  defstruct [:rules, :alarm_id_to_rules, :cache, :changed_alarm_ids, :timers, :actions, :states]
+  @type alarm_lookup_fun() :: (Alarmist.alarm_id() -> Alarmist.alarm_state())
+
+  defstruct [
+    :rules,
+    :alarm_id_to_rules,
+    :cache,
+    :changed_alarm_ids,
+    :timers,
+    :actions_r,
+    :states,
+    :lookup_fun
+  ]
 
   @typedoc """
   * `:alarm_id_to_rules` - map of alarm_id to the list of rules to run
   * `:cache` - temporary cache for alarm status while processing rules
   * `:changed_alarm_id` - list of alarm_ids that have changed values
   * `:timers` - map of alarm_id to pending timer
-  * `:actions` - list of pending side effects (engine processing is side-effect free
+  * `:actions_r` - list of pending side effects in reverse (engine processing is side-effect free
     by design so someone else has to do the dirty work)
   * `:states` - optional state that can be kept on a per-alarm_id basis
+  * `:lookup_fun` - function for looking up alarm state
   """
   @type t() :: %__MODULE__{
           rules: map(),
@@ -22,30 +34,118 @@ defmodule Alarmist.Engine do
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
           timers: map(),
-          states: map()
+          actions_r: list(),
+          states: map(),
+          lookup_fun: alarm_lookup_fun()
         }
 
-  @spec init() :: t()
-  def init() do
+  @spec init(alarm_lookup_fun()) :: t()
+  def init(lookup_fun) do
     %__MODULE__{
       rules: %{},
       alarm_id_to_rules: %{},
       cache: %{},
       changed_alarm_ids: [],
       timers: %{},
-      states: %{}
+      actions_r: [],
+      states: %{},
+      lookup_fun: lookup_fun
     }
   end
 
   @doc """
-  Run rules for when alarm_id changes state
+  Report that an alarm_id has changed state
 
-  set_alarm and clear_alarm call this. It keeps calling itself until all changes are handled.
+
   """
-  @spec run(t(), [Alarmist.alarm_id()]) :: t()
-  def run(engine, alarms) do
-    engine = %{engine | cache: %{}, changed_alarm_ids: []}
-    do_run(engine, alarms)
+  @spec set_alarm(t(), Alarmist.alarm_id(), any()) :: t()
+  def set_alarm(engine, alarm_id, description) do
+    engine
+    |> cache_put(alarm_id, :set, description)
+    |> run_changed()
+  end
+
+  @spec clear_alarm(t(), Alarmist.alarm_id()) :: t()
+  def clear_alarm(engine, alarm_id) do
+    engine
+    |> cache_put(alarm_id, :clear, nil)
+    |> run_changed()
+  end
+
+  @type action() :: {:set, Alarmist.alarm_id()} | {:clear, Alarmist.alarm_id()}
+  @doc """
+  Commit all side effects from previous operations
+
+  The caller needs to run all of the side effects before the next call to the engine
+  so state changes may be lost.
+  """
+  @spec commit_side_effects(t()) :: {t(), [action()]}
+  def commit_side_effects(engine) do
+    engine = run_changed(engine)
+
+    actions =
+      engine.actions_r
+      |> remove_duplicate_descriptions()
+      |> remove_redundant_alarms()
+      |> Enum.reverse()
+
+    new_engine = %{engine | actions_r: [], cache: %{}}
+    {new_engine, actions}
+  end
+
+  defp remove_duplicate_descriptions(actions_r) do
+    remove_duplicate_descriptions(actions_r, %{}, [])
+  end
+
+  defp remove_duplicate_descriptions([{:set_description, alarm_id, _} = action | rest], seen, acc) do
+    if Map.get(seen, alarm_id) do
+      remove_duplicate_descriptions(rest, seen, acc)
+    else
+      remove_duplicate_descriptions(rest, Map.put(seen, alarm_id, true), [action | acc])
+    end
+  end
+
+  defp remove_duplicate_descriptions([action | rest], seen, acc) do
+    remove_duplicate_descriptions(rest, seen, [action | acc])
+  end
+
+  defp remove_duplicate_descriptions([], _seen, acc) do
+    Enum.reverse(acc)
+  end
+
+  defp remove_redundant_alarms(actions_r) do
+    remove_redundant_alarms(actions_r, %{}, [])
+  end
+
+  defp remove_redundant_alarms([{op, alarm_id} = action | rest], seen, acc)
+       when op in [:set, :clear] do
+    case Map.fetch(seen, alarm_id) do
+      {:ok, {last, _}} -> remove_redundant_alarms(rest, Map.put(seen, alarm_id, {last, op}), acc)
+      :error -> remove_redundant_alarms(rest, Map.put(seen, alarm_id, {op, op}), [action | acc])
+    end
+  end
+
+  defp remove_redundant_alarms([action | rest], seen, acc) do
+    remove_redundant_alarms(rest, seen, [action | acc])
+  end
+
+  defp remove_redundant_alarms([], seen, acc) do
+    # All of the easily redundant set/clears have been removed. Now, for each alarm_id,
+    # remove the set/clear if it is inconsequential. E.g., a set...clear or a clear...set.
+    # In both cases, the final value doesn't change.
+    dropped_alarm_ids =
+      for {alarm_id, {last_state, first_state}} <- seen, last_state != first_state, do: alarm_id
+
+    acc |> Enum.reverse() |> Enum.reject(&reject_alarm_action(&1, dropped_alarm_ids))
+  end
+
+  defp reject_alarm_action({:set, alarm_id}, dropped_ids), do: alarm_id in dropped_ids
+  defp reject_alarm_action({:clear, alarm_id}, dropped_ids), do: alarm_id in dropped_ids
+  defp reject_alarm_action(_, _), do: false
+
+  defp run_changed(engine) do
+    changed_alarm_ids = engine.changed_alarm_ids
+    %{engine | changed_alarm_ids: []} |> do_run(changed_alarm_ids)
   end
 
   defp do_run(engine, [alarm_id | rest]) do
@@ -79,7 +179,7 @@ defmodule Alarmist.Engine do
     rules = Compiler.compile(alarm_id, rule_spec)
     engine = Enum.reduce(rules, engine, fn rule, engine -> link_rule(engine, rule, alarm_id) end)
 
-    run(engine, [alarm_id])
+    do_run(engine, [alarm_id])
   end
 
   defp link_rule(engine, rule, synthetic_alarm_id) do
@@ -133,25 +233,36 @@ defmodule Alarmist.Engine do
         {engine, result}
 
       :error ->
-        # TODO: Actually look up
-        new_cache = Map.put(engine.cache, alarm_id, :clear)
-        {%{engine | cache: new_cache}, :clear}
+        value = engine.lookup_fun.(alarm_id)
+        new_cache = Map.put(engine.cache, alarm_id, value)
+        {%{engine | cache: new_cache}, value}
     end
   end
 
-  @doc false
-  @spec cache_put(t(), Alarmist.alarm_id(), Alarmist.alarm_state()) :: t()
-  def cache_put(engine, alarm_id, value) do
-    case Map.fetch(engine.cache, alarm_id) do
-      {:ok, _} ->
-        raise RuntimeError, "Rule loop detected!"
+  @doc """
+  Cache alarm state and record the change
 
-      :error ->
-        new_cache = Map.put(engine.cache, alarm_id, value)
-        new_changed = [alarm_id | engine.changed_alarm_ids]
-        new_actions = [{value, alarm_id} | engine.actions]
+  IMPORTANT: Rules are evaluated on the next call to `run/2` if there was a change.
+  """
+  @spec cache_put(t(), Alarmist.alarm_id(), Alarmist.alarm_state(), any()) :: t()
+  def cache_put(engine, alarm_id, alarm_state, description) do
+    {engine, current_state} = cache_get(engine, alarm_id)
 
-        %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions: new_actions}
+    if current_state == alarm_state do
+      # No change
+      new_actions_r = [{:set_description, alarm_id, description} | engine.actions_r]
+      %{engine | actions_r: new_actions_r}
+    else
+      # Changed
+      new_cache = Map.put(engine.cache, alarm_id, alarm_state)
+      new_changed = [alarm_id | engine.changed_alarm_ids]
+
+      new_actions_r = [
+        {:set_description, alarm_id, description},
+        {alarm_state, alarm_id} | engine.actions_r
+      ]
+
+      %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
     end
   end
 
@@ -162,7 +273,7 @@ defmodule Alarmist.Engine do
     %{
       engine
       | timers: Map.delete(engine.timers, expiry_alarm_id),
-        actions: [{:cancel_timer, expiry_alarm_id} | engine.actions]
+        actions_r: [{:cancel_timer, expiry_alarm_id} | engine.actions_r]
     }
   end
 
@@ -175,7 +286,7 @@ defmodule Alarmist.Engine do
     %{
       engine
       | timers: Map.put(engine.timers, expiry_alarm_id, timer_id),
-        actions: [timer_action | engine.actions]
+        actions_r: [timer_action | engine.actions_r]
     }
   end
 
