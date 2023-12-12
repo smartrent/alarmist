@@ -23,12 +23,12 @@ defmodule HeartbeatAlarmTest do
 
       Alarmist.subscribe(alarm_id)
 
-      assert_receive %PropertyTable.Event{property: [^alarm_id, :raised]} = _event,
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :set]} = _event,
                      @timeout + 150
 
       :alarm_handler.clear_alarm(alarm_id)
 
-      assert_receive %PropertyTable.Event{property: [^alarm_id, :cleared]} = _event,
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :clear]} = _event,
                      @timeout + 150
     end
 

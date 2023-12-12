@@ -1,10 +1,9 @@
 defmodule Alarmist do
   @moduledoc """
-  Top-Level Application Module for Alarmist
+  Alarm manager
   """
-  use Application
-
-  alias Alarmist.Monitor
+  alias Alarmist.Compiler
+  alias Alarmist.Handler
 
   # SASL doesn't define types for these so create them here
   @type alarm_id() :: any()
@@ -13,42 +12,38 @@ defmodule Alarmist do
   @type alarm_state() :: :set | :clear
 
   @doc """
-  Sets up the Alarmist alarm handler/monitor
-  """
-  @impl Application
-  def start(_type, _args) do
-    config = Application.get_all_env(:alarmist)
+  Subscribe to alarm status events
 
-    :ok =
-      :gen_event.swap_sup_handler(
-        :alarm_handler,
-        {:alarm_handler, :swap},
-        {Alarmist.Monitor, config}
-      )
+  Events will be delivered to the calling process as:
 
-    children = [{PropertyTable, name: Alarmist, matcher: Alarmist.Rules.Matcher}]
-
-    opts = [strategy: :one_for_one, name: Alarmist.Supervisor]
-    Supervisor.start_link(children, opts)
-  end
-
-  @doc """
-  Subscribe the current process to the specified alarm `:raised` and `:cleared` events
+  ```elixir
+  ```
   """
   @spec subscribe(alarm_id()) :: :ok
   def subscribe(alarm_id) when is_atom(alarm_id) do
-    Monitor.ensure_registered(alarm_id)
-    PropertyTable.subscribe(Alarmist, [alarm_id, :raised])
-    PropertyTable.subscribe(Alarmist, [alarm_id, :cleared])
+    PropertyTable.subscribe(Alarmist, [alarm_id, :status])
   end
 
   @doc """
-  Unsubscribe the current process from the specified alarm `:raised` and `:cleared` events
+  Unsubscribe the current process from the specified alarm `:set` and `:clear` events
   """
   @spec unsubscribe(alarm_id()) :: :ok
   def unsubscribe(alarm_id) when is_atom(alarm_id) do
-    Monitor.ensure_registered(alarm_id)
-    PropertyTable.unsubscribe(Alarmist, [alarm_id, :raised])
-    PropertyTable.unsubscribe(Alarmist, [alarm_id, :cleared])
+    PropertyTable.unsubscribe(Alarmist, [alarm_id, :status])
+  end
+
+  @doc """
+  Return all of the currently set alarms
+  """
+  @spec current_alarms() :: [alarm_id()]
+  def current_alarms() do
+    PropertyTable.match(Alarmist, [:_, :status])
+    |> Enum.filter(fn {_, status} -> status == :set end)
+    |> Enum.map(fn {[alarm_id, _], _} -> alarm_id end)
+  end
+
+  @spec add_synthetic_alarm(Alarmist.alarm_id(), Compiler.rule_spec()) :: :ok
+  def add_synthetic_alarm(alarm_id, rule_spec) do
+    Handler.add_synthetic_alarm(alarm_id, rule_spec)
   end
 end

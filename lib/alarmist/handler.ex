@@ -4,9 +4,25 @@ defmodule Alarmist.Handler do
   """
   @behaviour :gen_event
 
+  alias Alarmist.Compiler
   alias Alarmist.Engine
 
   require Logger
+
+  @spec add_synthetic_alarm(Alarmist.alarm_id(), Compiler.rule_spec()) :: :ok
+  def add_synthetic_alarm(alarm_id, rule_spec) do
+    :gen_event.call(:alarm_handler, __MODULE__, {:add_synthetic_alarm, alarm_id, rule_spec})
+  end
+
+  @spec remove_synthetic_alarm(Alarmist.alarm_id()) :: :ok
+  def remove_synthetic_alarm(alarm_id) do
+    :gen_event.call(:alarm_handler, __MODULE__, {:remove_synthetic_alarm, alarm_id})
+  end
+
+  @spec get_state() :: Engine.t()
+  def get_state() do
+    :gen_event.call(:alarm_handler, __MODULE__, :get_state)
+  end
 
   @impl :gen_event
   def init({options, {:alarm_handler, existing_alarms}}) do
@@ -26,9 +42,7 @@ defmodule Alarmist.Handler do
         Engine.add_synthetic_alarm(engine, alarm_id, rule)
       end)
 
-    {engine, _side_effects} = Engine.commit_side_effects(engine)
-
-    #    run_actions(side_effects)
+    engine = commit_side_effects(engine)
 
     {:ok, %{engine: engine}}
   end
@@ -54,13 +68,14 @@ defmodule Alarmist.Handler do
     alarm_description = nil
 
     engine = Engine.set_alarm(state.engine, alarm_id, alarm_description)
-    # Enum.each(effects, &process_side_effect/1)
+    engine = commit_side_effects(engine)
+
     {:ok, %{state | engine: engine}}
   end
 
   def handle_event({:clear_alarm, alarm_id}, state) do
     engine = Engine.clear_alarm(state.engine, alarm_id)
-    # Enum.each(effects, &process_side_effect/1)
+    engine = commit_side_effects(engine)
     {:ok, %{state | engine: engine}}
   end
 
@@ -74,9 +89,20 @@ defmodule Alarmist.Handler do
   end
 
   @impl :gen_event
-  def handle_call(_request, state) do
-    # No-op
-    {:ok, :ok, state}
+  def handle_call({:add_synthetic_alarm, alarm_id, rule_spec}, state) do
+    engine = Engine.add_synthetic_alarm(state.engine, alarm_id, rule_spec)
+    engine = commit_side_effects(engine)
+    {:ok, :ok, %{state | engine: engine}}
+  end
+
+  def handle_call({:remove_synthetic_alarm, alarm_id}, state) do
+    engine = Engine.remove_synthetic_alarm(state.engine, alarm_id)
+    engine = commit_side_effects(engine)
+    {:ok, :ok, %{state | engine: engine}}
+  end
+
+  def handle_call(:get_state, state) do
+    {:ok, state.engine, state}
   end
 
   # defp run_side_effects(state, actions) do
@@ -84,13 +110,17 @@ defmodule Alarmist.Handler do
   #   # of an inconsistent view of the table.
   # end
 
-  # defp run_side_effect({:set, alarm_id}) do
-  #   PropertyTable.put(Alarmist, [alarm_id, :status], :set)
-  # end
+  defp run_side_effect({:set, alarm_id}) do
+    PropertyTable.put(Alarmist, [alarm_id, :status], :set)
+  end
 
-  # defp run_side_effect({:clear, alarm_id}) do
-  #   PropertyTable.put(Alarmist, [alarm_id, :status], :clear)
-  # end
+  defp run_side_effect({:clear, alarm_id}) do
+    PropertyTable.put(Alarmist, [alarm_id, :status], :clear)
+  end
+
+  defp run_side_effect(_) do
+    :ok
+  end
 
   # defp run_side_effect({:add_check_interval, time_ms, alarm_id}) do
   #   {:ok, timer_ref} = :timer.send_interval(time_ms, :alarm_handler, {:check_alarm, alarm_id})
@@ -101,4 +131,10 @@ defmodule Alarmist.Handler do
   defp get_alarm_id({alarm_id, _description}), do: alarm_id
   defp get_alarm_id(alarm) when is_tuple(alarm), do: elem(alarm, 0)
   defp get_alarm_id(alarm_id), do: alarm_id
+
+  defp commit_side_effects(engine) do
+    {engine, actions} = Engine.commit_side_effects(engine)
+    Enum.each(actions, &run_side_effect/1)
+    engine
+  end
 end

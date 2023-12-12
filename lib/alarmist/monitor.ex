@@ -155,8 +155,8 @@ defmodule Alarmist.Monitor do
             {[alarm_id, :level], level},
             {[alarm_id, :options], options},
             {[alarm_id, :status], :clear},
-            {[alarm_id, :raised], 0},
-            {[alarm_id, :cleared], 0},
+            {[alarm_id, :set], 0},
+            {[alarm_id, :clear], 0},
             {[alarm_id, :last_cleared], :never},
             {[alarm_id, :last_raised], :never}
           ]
@@ -169,13 +169,13 @@ defmodule Alarmist.Monitor do
   defp raise_alarm(alarm_id) do
     if alarm_exists?(alarm_id) do
       now = DateTime.utc_now()
-      current_raise_count = PropertyTable.get(Alarmist, [alarm_id, :raised])
+      current_raise_count = PropertyTable.get(Alarmist, [alarm_id, :set])
 
       PropertyTable.put_many(
         Alarmist,
         [
-          {[alarm_id, :raised], current_raise_count + 1},
-          {[alarm_id, :status], :raised},
+          {[alarm_id, :set], current_raise_count + 1},
+          {[alarm_id, :status], :set},
           {[alarm_id, :last_raised], now}
         ]
       )
@@ -189,12 +189,12 @@ defmodule Alarmist.Monitor do
   defp clear_alarm(alarm_id) do
     if alarm_exists?(alarm_id) do
       now = DateTime.utc_now()
-      current_clear_count = PropertyTable.get(Alarmist, [alarm_id, :cleared])
+      current_clear_count = PropertyTable.get(Alarmist, [alarm_id, :clear])
 
       :ok =
         PropertyTable.put_many(Alarmist, [
           {[alarm_id, :status], :clear},
-          {[alarm_id, :cleared], current_clear_count + 1},
+          {[alarm_id, :clear], current_clear_count + 1},
           {[alarm_id, :last_cleared], now}
         ])
     else

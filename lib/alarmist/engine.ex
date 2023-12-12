@@ -2,8 +2,12 @@ defmodule Alarmist.Engine do
   @moduledoc """
   Synthetic alarm processing engine
   """
-
   alias Alarmist.Compiler
+
+  @type action() ::
+          {:set, Alarmist.alarm_id()}
+          | {:clear, Alarmist.alarm_id()}
+          | {:set_description, Alarmist.alarm_id(), any()}
 
   @type alarm_lookup_fun() :: (Alarmist.alarm_id() -> Alarmist.alarm_state())
 
@@ -72,7 +76,6 @@ defmodule Alarmist.Engine do
     |> run_changed()
   end
 
-  @type action() :: {:set, Alarmist.alarm_id()} | {:clear, Alarmist.alarm_id()}
   @doc """
   Commit all side effects from previous operations
 
@@ -150,7 +153,7 @@ defmodule Alarmist.Engine do
 
   defp do_run(engine, [alarm_id | rest]) do
     rules = Map.get(engine.alarm_id_to_rules, alarm_id, [])
-    engine = run_rules(engine, rules)
+    engine = run_tagged_rules(engine, rules)
 
     changed_alarm_ids = engine.changed_alarm_ids
     engine = %{engine | changed_alarm_ids: []}
@@ -160,12 +163,12 @@ defmodule Alarmist.Engine do
 
   defp do_run(engine, []), do: engine
 
-  defp run_rules(engine, []), do: engine
+  defp run_tagged_rules(engine, []), do: engine
 
-  defp run_rules(engine, [rule | rest]) do
-    {m, f, args} = rule
+  defp run_tagged_rules(engine, [tagged_rule | rest]) do
+    {_tag, {m, f, args}} = tagged_rule
     engine = apply(m, f, [engine, args])
-    run_rules(engine, rest)
+    run_tagged_rules(engine, rest)
   end
 
   @doc """
@@ -173,9 +176,14 @@ defmodule Alarmist.Engine do
 
   The synthetic alarm will be evaluated, so if the synthetic alarm ID already
   has subscribers, they'll get notified if the alarm is set.
+
+  Raises on errors
   """
   @spec add_synthetic_alarm(t(), Alarmist.alarm_id(), Compiler.rule_spec()) :: t()
   def add_synthetic_alarm(engine, alarm_id, rule_spec) do
+    if Map.has_key?(engine.alarm_id_to_rules, alarm_id),
+      do: raise(RuntimeError, "#{inspect(alarm_id)} already exists")
+
     rules = Compiler.compile(alarm_id, rule_spec)
     engine = Enum.reduce(rules, engine, fn rule, engine -> link_rule(engine, rule, alarm_id) end)
 
@@ -183,7 +191,7 @@ defmodule Alarmist.Engine do
   end
 
   defp link_rule(engine, rule, synthetic_alarm_id) do
-    {_m, _f, args} = rule
+    {_m, _f, [_output_alarm_id | args]} = rule
 
     alarm_ids_in_rule = Enum.filter(args, &is_atom/1)
 
@@ -196,7 +204,7 @@ defmodule Alarmist.Engine do
   end
 
   defp map_update_list(map, key, value) do
-    Map.update(map, key, [], fn existing -> [value | existing] end)
+    Map.update(map, key, [value], fn existing -> [value | existing] end)
   end
 
   @doc """

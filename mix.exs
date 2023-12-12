@@ -22,7 +22,7 @@ defmodule Alarmist.MixProject do
   def application do
     [
       extra_applications: [:logger, :sasl],
-      mod: {Alarmist, []}
+      mod: {Alarmist.Application, []}
     ]
   end
 

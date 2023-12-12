@@ -25,18 +25,18 @@ defmodule FlappingAlarmTest do
 
       # Set and cleared more than 3 times in 1 second
       Enum.each(1..3, fn x ->
-        :alarm_handler.set_alarm({alarm_id, "testing %{x}"})
+        :alarm_handler.set_alarm({alarm_id, "testing #{x}"})
         :alarm_handler.clear_alarm(alarm_id)
         Process.sleep(50)
       end)
 
-      assert_receive %PropertyTable.Event{property: [^alarm_id, :raised]} = _event,
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :set]} = _event,
                      @timeout + 500
 
       # Alarm should clear itself within the next interval
       Process.sleep(@timeout)
 
-      assert_receive %PropertyTable.Event{property: [^alarm_id, :cleared]} = _event,
+      assert_receive %PropertyTable.Event{property: [^alarm_id, :clear]} = _event,
                      @timeout + 500
     end
   end

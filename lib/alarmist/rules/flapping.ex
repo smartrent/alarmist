@@ -78,7 +78,7 @@ defmodule Alarmist.Rules.Flapping do
 
     cond do
       # Within this interval, if we fell below the threshold, and the alarm is raised, clear it
-      current_alarm_state == :raised and current_event_count < threshold ->
+      current_alarm_state == :set and current_event_count < threshold ->
         [{:clear, name}, {:reset_counter, name}]
 
       # Within this interval, if we went above the threshold and we're not raised, raise
