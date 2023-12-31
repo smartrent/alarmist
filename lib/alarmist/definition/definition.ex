@@ -3,6 +3,7 @@ defmodule Alarmist.Definition do
 
   defp process_node(item) when is_atom(item), do: Module.concat([item])
   defp process_node({:__aliases__, _, [item]}), do: Module.concat([item])
+  defp process_node(number) when is_number(number), do: number
 
   defp process_node({op, _meta, children}) do
     processed_children = Enum.map(children, &process_node/1)
@@ -11,6 +12,9 @@ defmodule Alarmist.Definition do
       :not -> [:not | processed_children]
       :and -> [:and | processed_children]
       :or -> [:or | processed_children]
+      :debounce -> [:debounce | processed_children]
+      :hold -> [:hold | processed_children]
+      :intensity -> [:intensity | processed_children]
     end
   end
 

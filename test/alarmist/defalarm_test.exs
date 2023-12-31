@@ -46,6 +46,54 @@ defmodule Alarmist.DefAlarmTest do
     assert NotTest.__get_alarms() == [expected_result]
   end
 
+  test "debounce" do
+    defmodule DebounceTest do
+      use Alarmist.Definition
+
+      defalarm ResultAlarmId do
+        debounce(AlarmId1, 1000)
+      end
+    end
+
+    expected_result = %{
+      ResultAlarmId => [{Alarmist.Ops, :debounce, [ResultAlarmId, AlarmId1, 1000]}]
+    }
+
+    assert DebounceTest.__get_alarms() == [expected_result]
+  end
+
+  test "hold" do
+    defmodule HoldTest do
+      use Alarmist.Definition
+
+      defalarm ResultAlarmId do
+        hold(AlarmId1, 2000)
+      end
+    end
+
+    expected_result = %{
+      ResultAlarmId => [{Alarmist.Ops, :hold, [ResultAlarmId, AlarmId1, 2000]}]
+    }
+
+    assert HoldTest.__get_alarms() == [expected_result]
+  end
+
+  test "intensity" do
+    defmodule IntensityTest do
+      use Alarmist.Definition
+
+      defalarm ResultAlarmId do
+        intensity(AlarmId1, 5, 10000)
+      end
+    end
+
+    expected_result = %{
+      ResultAlarmId => [{Alarmist.Ops, :intensity, [ResultAlarmId, AlarmId1, 5, 10000]}]
+    }
+
+    assert IntensityTest.__get_alarms() == [expected_result]
+  end
+
   test "and and or" do
     defmodule AndOrTest do
       use Alarmist.Definition

@@ -45,10 +45,18 @@ defmodule Alarmist.Compiler do
     {%{state | rules: [rule | state.rules]}, result}
   end
 
+  defp do_compile(state, [function1, input | params])
+       when function1 in [:debounce, :hold, :intensity] do
+    {state, [resolved_input]} = resolve(state, [input])
+    {state, result} = make_variable(state)
+    rule = mf(function1, [result, resolved_input | params])
+    {%{state | rules: [rule | state.rules]}, result}
+  end
+
   defp mf(:and, args), do: {Alarmist.Ops, :logical_and, args}
   defp mf(:or, args), do: {Alarmist.Ops, :logical_or, args}
   defp mf(:not, args), do: {Alarmist.Ops, :logical_not, args}
-  defp mf(:copy, args), do: {Alarmist.Ops, :copy, args}
+  defp mf(op, args) when op in [:copy, :debounce, :hold, :intensity], do: {Alarmist.Ops, op, args}
 
   defp make_variable(state) do
     var = :"#{state.result_alarm_id}.#{state.temp_counter}"
