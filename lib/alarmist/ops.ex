@@ -4,7 +4,15 @@ defmodule Alarmist.Ops do
   """
   alias Alarmist.Engine
 
-  @spec copy(Engine.t(), keyword()) :: Engine.t()
+  @doc """
+  Replicate an alarm status
+
+  This is useful for aliasing alarm names. For example, if one library sets and
+  clears an alarm ID that's in its namespace, but another library wants to
+  listen on changes to an alarm ID in its namespace, a copy rule can glue them
+  together.
+  """
+  @spec copy(Engine.t(), list()) :: Engine.t()
   def copy(engine, [output, input]) do
     {engine, value} = Engine.cache_get(engine, input)
     Engine.cache_put(engine, output, value, nil)
@@ -52,6 +60,15 @@ defmodule Alarmist.Ops do
     end
   end
 
+  @doc """
+  Set an alarm when one or more input alarms get set
+
+  This is useful for triggering a generic remediation. An example of this for
+  setting an alarm that indicates that the device is "unhealthy" and needs to
+  reboot. There are usually many disastrous alarms that when raised really have
+  no great remediation other than reboot. This allows a handler to register for
+  a combined alarm so that it's decoupled from the alarms that trigger it.
+  """
   @spec logical_or(Engine.t(), list()) :: Engine.t()
   def logical_or(engine, [output, inputs]) do
     {engine, value} = do_logical_or(engine, inputs)
@@ -75,9 +92,22 @@ defmodule Alarmist.Ops do
   @doc """
   Set an alarm when the input has been set for a specified duration
 
+  This rule removes transient alarms from triggering remediation unnecessarily.
+  This is useful when remediation is expensive or service impacting and the
+  input alarm is somewhat glitchy.
 
+  Alarmist already provides some debouncing since alarms that get set and
+  cleared in one alarm processing pass are ignored already. This is unreliable,
+  though, and a debounce rule establishes a duration.
+
+  An example of when debouncing is useful is to delay remediation of higher
+  level alarms like being disconnected from a backend server. There are many
+  reasons that a TCP connection could be interrupted and client code probably
+  has some retry logic in it already to reestablish the connection. In this
+  case, it might be good to delay switching to an offline mode for a little bit
+  in the hopes that the problem will naturally go away.
   """
-  @spec debounce(Engine.t(), keyword()) :: Engine.t()
+  @spec debounce(Engine.t(), list()) :: Engine.t()
   def debounce(engine, [output, input, timeout]) do
     {engine, value} = Engine.cache_get(engine, input)
 
@@ -88,8 +118,50 @@ defmodule Alarmist.Ops do
   end
 
   @doc """
+  Keep an alarm set for a guaranteed amount of time
+
+  This sets an alarm for at least `timeout` milliseconds after it is set. Each
+  time the alarm is set, the timer is restarted.
+
+  Hold is useful for types of remediation that are time based. I.e., handling
+  an alarm means turning something off for a while since turning that feature
+  back on when the alarm gets cleared would likely just result in the alarm
+  being set again. Managing the timeout period via alarms rather than
+  programmatically lets you manually clear the alarm if you'd like that feature
+  enabled again immediately like if you're debugging.
   """
-  @spec intensity(Engine.t(), keyword()) :: Engine.t()
+  @spec hold(Engine.t(), list()) :: Engine.t()
+  def hold(engine, [output, input, timeout]) do
+    {engine, value} = Engine.cache_get(engine, input)
+
+    case value do
+      :clear ->
+        # Do nothing. This alarm is cleared on the timer.
+        engine
+
+      :set ->
+        engine
+        |> Engine.cache_put(output, :set, nil)
+        |> Engine.start_timer(output, timeout, :clear)
+    end
+  end
+
+  @doc """
+  Sets an alarm when the input alarm has been set and cleared too many times
+
+  This type of rule catches flapping alarms where it's desirable to take some
+  kind of remediation when they trigger too many times in a row. Intensity is
+  measured as `count` set/clears in `duration` milliseconds. This is the same
+  as supervision restart intensity thresholds.
+
+  An example of an intensity-based alarm is to handle the case when multiple
+  network connections are available, but one that should be good is flakey.
+  This happens if a device has both a cellular and a WiFi connection. Normally
+  the WiFi connection is preferred, but if it keeps going up and down, it may
+  be desirable to raise an alarm. That alarm could disable WiFi for a while.
+  Combine this with `hold/2` to manage the duration that WiFi is off.
+  """
+  @spec intensity(Engine.t(), list()) :: Engine.t()
   def intensity(engine, [output, input, count, duration]) do
     {engine, value} = Engine.cache_get(engine, input)
 
