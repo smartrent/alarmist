@@ -2,7 +2,6 @@ defmodule Alarmist.Engine do
   @moduledoc """
   Synthetic alarm processing engine
   """
-  alias Alarmist.Compiler
 
   @type action() ::
           {:set, Alarmist.alarm_id()}
@@ -63,14 +62,14 @@ defmodule Alarmist.Engine do
 
   """
   @spec set_alarm(t(), Alarmist.alarm_id(), any()) :: t()
-  def set_alarm(engine, alarm_id, description) do
+  def set_alarm(engine, alarm_id, description) when is_atom(alarm_id) do
     engine
     |> cache_put(alarm_id, :set, description)
     |> run_changed()
   end
 
   @spec clear_alarm(t(), Alarmist.alarm_id()) :: t()
-  def clear_alarm(engine, alarm_id) do
+  def clear_alarm(engine, alarm_id) when is_atom(alarm_id) do
     engine
     |> cache_put(alarm_id, :clear, nil)
     |> run_changed()
@@ -179,13 +178,13 @@ defmodule Alarmist.Engine do
 
   Raises on errors
   """
-  @spec add_synthetic_alarm(t(), Alarmist.alarm_id(), Compiler.rule_spec()) :: t()
-  def add_synthetic_alarm(engine, alarm_id, rule_spec) do
+  @spec add_synthetic_alarm(t(), Alarmist.alarm_id(), Alarmist.compiled_rules()) :: t()
+  def add_synthetic_alarm(engine, alarm_id, compiled_rules) do
     if Map.has_key?(engine.alarm_id_to_rules, alarm_id),
       do: raise(RuntimeError, "#{inspect(alarm_id)} already exists")
 
-    rules = Compiler.compile(alarm_id, rule_spec)
-    engine = Enum.reduce(rules, engine, fn rule, engine -> link_rule(engine, rule, alarm_id) end)
+    engine =
+      Enum.reduce(compiled_rules, engine, fn rule, engine -> link_rule(engine, rule, alarm_id) end)
 
     do_run(engine, [alarm_id])
   end

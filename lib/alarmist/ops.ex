@@ -41,7 +41,7 @@ defmodule Alarmist.Ops do
   way is broken, the device could trigger a more significant remediation.
   """
   @spec logical_and(Engine.t(), list()) :: Engine.t()
-  def logical_and(engine, [output, inputs]) do
+  def logical_and(engine, [output | inputs]) do
     {engine, value} = do_logical_and(engine, inputs)
     Engine.cache_put(engine, output, value, nil)
   end
@@ -70,7 +70,7 @@ defmodule Alarmist.Ops do
   a combined alarm so that it's decoupled from the alarms that trigger it.
   """
   @spec logical_or(Engine.t(), list()) :: Engine.t()
-  def logical_or(engine, [output, inputs]) do
+  def logical_or(engine, [output | inputs]) do
     {engine, value} = do_logical_or(engine, inputs)
     Engine.cache_put(engine, output, value, nil)
   end

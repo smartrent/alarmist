@@ -4,14 +4,13 @@ defmodule Alarmist.Handler do
   """
   @behaviour :gen_event
 
-  alias Alarmist.Compiler
   alias Alarmist.Engine
 
   require Logger
 
-  @spec add_synthetic_alarm(Alarmist.alarm_id(), Compiler.rule_spec()) :: :ok
-  def add_synthetic_alarm(alarm_id, rule_spec) do
-    :gen_event.call(:alarm_handler, __MODULE__, {:add_synthetic_alarm, alarm_id, rule_spec})
+  @spec add_synthetic_alarm(Alarmist.alarm_id(), Alarmist.compiled_rules()) :: :ok
+  def add_synthetic_alarm(alarm_id, compiled_rules) do
+    :gen_event.call(:alarm_handler, __MODULE__, {:add_synthetic_alarm, alarm_id, compiled_rules})
   end
 
   @spec remove_synthetic_alarm(Alarmist.alarm_id()) :: :ok
@@ -64,19 +63,28 @@ defmodule Alarmist.Handler do
 
   @impl :gen_event
   def handle_event({:set_alarm, alarm}, state) do
-    alarm_id = get_alarm_id(alarm)
-    alarm_description = nil
+    case normalize_alarm(alarm) do
+      {alarm_id, description} ->
+        engine = Engine.set_alarm(state.engine, alarm_id, description)
+        engine = commit_side_effects(engine)
 
-    engine = Engine.set_alarm(state.engine, alarm_id, alarm_description)
-    engine = commit_side_effects(engine)
+        {:ok, %{state | engine: engine}}
 
-    {:ok, %{state | engine: engine}}
+      :error ->
+        state
+    end
   end
 
   def handle_event({:clear_alarm, alarm_id}, state) do
-    engine = Engine.clear_alarm(state.engine, alarm_id)
-    engine = commit_side_effects(engine)
-    {:ok, %{state | engine: engine}}
+    case normalize_alarm_id(alarm_id) do
+      :error ->
+        {:ok, state}
+
+      alarm_id ->
+        engine = Engine.clear_alarm(state.engine, alarm_id)
+        engine = commit_side_effects(engine)
+        {:ok, %{state | engine: engine}}
+    end
   end
 
   @impl :gen_event
@@ -89,8 +97,8 @@ defmodule Alarmist.Handler do
   end
 
   @impl :gen_event
-  def handle_call({:add_synthetic_alarm, alarm_id, rule_spec}, state) do
-    engine = Engine.add_synthetic_alarm(state.engine, alarm_id, rule_spec)
+  def handle_call({:add_synthetic_alarm, alarm_id, compiled_rules}, state) do
+    engine = Engine.add_synthetic_alarm(state.engine, alarm_id, compiled_rules)
     engine = commit_side_effects(engine)
     {:ok, :ok, %{state | engine: engine}}
   end
@@ -127,14 +135,21 @@ defmodule Alarmist.Handler do
   #   :ok = PropertyTable.put(Alarmist, [alarm_id, :check_timer], timer_ref)
   # end
 
-  # Return the alarm_id from an alarm. The idiomatic case is first.
-  defp get_alarm_id({alarm_id, _description}), do: alarm_id
-  defp get_alarm_id(alarm) when is_tuple(alarm), do: elem(alarm, 0)
-  defp get_alarm_id(alarm_id), do: alarm_id
-
   defp commit_side_effects(engine) do
     {engine, actions} = Engine.commit_side_effects(engine)
     Enum.each(actions, &run_side_effect/1)
     engine
   end
+
+  defp normalize_alarm({alarm_id, _description} = alarm) when is_atom(alarm_id), do: alarm
+  defp normalize_alarm(alarm_id) when is_atom(alarm_id), do: {alarm_id, []}
+
+  defp normalize_alarm(alarm) when is_tuple(alarm) and is_atom(elem(alarm, 0)),
+    do: {elem(alarm, 0), tl(Tuple.to_list(alarm))}
+
+  defp normalize_alarm(_other), do: :error
+
+  defp normalize_alarm_id(alarm_id) when is_atom(alarm_id), do: alarm_id
+  defp normalize_alarm_id({alarm_id}) when is_atom(alarm_id), do: alarm_id
+  defp normalize_alarm_id(_other), do: :error
 end

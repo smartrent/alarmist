@@ -40,6 +40,8 @@ defmodule Alarmist do
   """
   @type alarm_state() :: :set | :clear
 
+  @type compiled_rules() :: [Compiler.rule()]
+
   @doc """
   Subscribe to alarm status events
 
@@ -73,14 +75,41 @@ defmodule Alarmist do
   end
 
   @doc """
+  Manually add a rule-based alarm
+
+  Use this when not using `defalarm`.
+
+  After this call, Alarmist will watch for alarms to be set based on the
+  supplied rules and set or clear the specified alarm ID. The alarm ID
+  needs to be unique.
+  """
+  @spec add_synthetic_alarm(Alarmist.alarm_id(), compiled_rules()) :: :ok
+  def add_synthetic_alarm(alarm_id, compiled_rules)
+      when is_atom(alarm_id) and is_list(compiled_rules) do
+    Handler.add_synthetic_alarm(alarm_id, compiled_rules)
+  end
+
+  @doc """
   Add a rule-based alarm
 
   After this call, Alarmist will watch for alarms to be set based on the
   supplied rules and set or clear the specified alarm ID. The alarm ID
   needs to be unique.
   """
-  @spec add_synthetic_alarm(Alarmist.alarm_id(), Compiler.rule_spec()) :: :ok
-  def add_synthetic_alarm(alarm_id, rule_spec) do
-    Handler.add_synthetic_alarm(alarm_id, rule_spec)
+  @spec add_synthetic_alarm(module()) :: :ok
+  def add_synthetic_alarm(compiled_alarm) when is_atom(compiled_alarm) do
+    {defining_module, alarm_id} = split_alarm(compiled_alarm)
+
+    [alarms] = defining_module.__get_alarms()
+    compiled_rules = alarms[alarm_id]
+
+    add_synthetic_alarm(alarm_id, compiled_rules)
+  end
+
+  defp split_alarm(alarm_name) do
+    [alarm_id_part | defining_module_r] = Module.split(alarm_name) |> Enum.reverse()
+    defining_module = defining_module_r |> Enum.reverse() |> Module.concat()
+    alarm_id = String.to_atom("Elixir." <> alarm_id_part)
+    {defining_module, alarm_id}
   end
 end
