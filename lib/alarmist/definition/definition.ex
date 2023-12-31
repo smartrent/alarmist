@@ -8,6 +8,7 @@ defmodule Alarmist.Definition do
     processed_children = Enum.map(children, &process_node/1)
 
     case op do
+      :not -> [:not | processed_children]
       :and -> [:and | processed_children]
       :or -> [:or | processed_children]
     end

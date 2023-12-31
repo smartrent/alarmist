@@ -10,7 +10,29 @@ defmodule Alarmist.Ops do
     Engine.cache_put(engine, output, value, nil)
   end
 
-  @spec logical_and(Engine.t(), keyword()) :: Engine.t()
+  @doc """
+  Set an alarm when the input alarm is cleared
+
+  This is useful for "proof-of-life" alarms where the presence of an alarm is a
+  good thing.
+  """
+  @spec logical_not(Engine.t(), list()) :: Engine.t()
+  def logical_not(engine, [output, input]) do
+    {engine, value} = Engine.cache_get(engine, input)
+
+    not_value = if value == :set, do: :clear, else: :set
+    Engine.cache_put(engine, output, not_value, nil)
+  end
+
+  @doc """
+  Set an alarm when all of the input alarms are set
+
+  This is useful when remediation is only useful when a lot of things go wrong.
+  For example, if a device has more than one way of accomplishing a task, there
+  could be a specific remediation when one way stops working. However, if every
+  way is broken, the device could trigger a more significant remediation.
+  """
+  @spec logical_and(Engine.t(), list()) :: Engine.t()
   def logical_and(engine, [output, inputs]) do
     {engine, value} = do_logical_and(engine, inputs)
     Engine.cache_put(engine, output, value, nil)

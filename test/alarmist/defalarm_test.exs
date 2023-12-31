@@ -23,9 +23,27 @@ defmodule Alarmist.DefAlarmTest do
       end
     end
 
-    expected_result = %{ResultAlarmId => [{Alarmist.Ops, :logical_and, [ResultAlarmId, AlarmId1, AlarmId2]}]}
+    expected_result = %{
+      ResultAlarmId => [{Alarmist.Ops, :logical_and, [ResultAlarmId, AlarmId1, AlarmId2]}]
+    }
 
     assert AndTest.__get_alarms() == [expected_result]
+  end
+
+  test "not" do
+    defmodule NotTest do
+      use Alarmist.Definition
+
+      defalarm ResultAlarmId do
+        not AlarmId1
+      end
+    end
+
+    expected_result = %{
+      ResultAlarmId => [{Alarmist.Ops, :logical_not, [ResultAlarmId, AlarmId1]}]
+    }
+
+    assert NotTest.__get_alarms() == [expected_result]
   end
 
   test "and and or" do
