@@ -226,11 +226,21 @@ defmodule Alarmist.Engine do
       |> Enum.filter(fn {_alarm_id, rules} -> rules != [] end)
       |> Map.new()
 
+    # I don't like this.
+    output_alarm_id =
+      synthetic_alarm_id
+      |> Module.split()
+      |> Enum.reverse()
+      |> hd
+      |> List.wrap()
+      |> Module.concat()
+
     %{
       engine
       | alarm_id_to_rules: new_alarm_id_to_rules,
         states: Map.delete(engine.states, synthetic_alarm_id)
     }
+    |> cache_put(output_alarm_id, :clear, nil)
   end
 
   defp unlink_rules(rules, synthetic_alarm_id) do

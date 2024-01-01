@@ -72,6 +72,35 @@ defmodule AlarmistTest do
     Alarmist.remove_synthetic_alarm(MyAlarms6.TestAlarm)
   end
 
+  test "cleared when rule deleted" do
+    defmodule MyAlarms7 do
+      use Alarmist.Definition
+
+      defalarm TestAlarm do
+        AlarmId10
+      end
+    end
+
+    Alarmist.subscribe(TestAlarm)
+    Alarmist.add_synthetic_alarm(MyAlarms7.TestAlarm)
+
+    :alarm_handler.set_alarm({AlarmId10, []})
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :set
+    }
+
+    Alarmist.remove_synthetic_alarm(MyAlarms7.TestAlarm)
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :clear
+    }
+  end
+
   test "hold rules" do
     defmodule MyAlarms2 do
       use Alarmist.Definition
