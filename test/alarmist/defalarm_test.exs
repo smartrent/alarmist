@@ -112,4 +112,26 @@ defmodule Alarmist.DefAlarmTest do
 
     assert AndOrTest.__get_alarms() == [expected_result]
   end
+
+  test "compound with not" do
+    defmodule CompoundWithNotTest do
+      use Alarmist.Definition
+
+      defalarm ResultAlarmId do
+        (Id1 and Id2) or not (Id2 and Id3)
+      end
+    end
+
+    expected_result = %{
+      ResultAlarmId => [
+        {Alarmist.Ops, :logical_or,
+         [ResultAlarmId, :"Elixir.ResultAlarmId.0", :"Elixir.ResultAlarmId.2"]},
+        {Alarmist.Ops, :logical_not, [:"Elixir.ResultAlarmId.2", :"Elixir.ResultAlarmId.1"]},
+        {Alarmist.Ops, :logical_and, [:"Elixir.ResultAlarmId.1", Id2, Id3]},
+        {Alarmist.Ops, :logical_and, [:"Elixir.ResultAlarmId.0", Id1, Id2]}
+      ]
+    }
+
+    assert CompoundWithNotTest.__get_alarms() == [expected_result]
+  end
 end

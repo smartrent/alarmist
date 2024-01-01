@@ -186,6 +186,10 @@ defmodule Alarmist.Engine do
     engine =
       Enum.reduce(compiled_rules, engine, fn rule, engine -> link_rule(engine, rule, alarm_id) end)
 
+    # All input alarms are marked as changed just in case this rule triggers
+    # immediately, but make sure we're not including a change twice.
+    engine = %{engine | changed_alarm_ids: Enum.uniq(engine.changed_alarm_ids)}
+
     do_run(engine, [alarm_id])
   end
 
@@ -199,7 +203,9 @@ defmodule Alarmist.Engine do
         map_update_list(acc, alarm_id, {synthetic_alarm_id, rule})
       end)
 
-    %{engine | alarm_id_to_rules: new_alarm_id_to_rules}
+    new_changed = alarm_ids_in_rule ++ engine.changed_alarm_ids
+
+    %{engine | alarm_id_to_rules: new_alarm_id_to_rules, changed_alarm_ids: new_changed}
   end
 
   defp map_update_list(map, key, value) do
