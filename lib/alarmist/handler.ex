@@ -137,6 +137,11 @@ defmodule Alarmist.Handler do
     Process.send_after(self(), {:timeout, alarm_id, what, params}, timeout)
   end
 
+  defp run_side_effect({:cancel_timer, _alarm_id}) do
+    # Can't cancel the message. Would need to save the timer ID. Might not even be worth it
+    # since the message will be ignored anyway.
+  end
+
   defp commit_side_effects(engine) do
     {engine, actions} = Engine.commit_side_effects(engine)
     Enum.each(actions, &run_side_effect/1)

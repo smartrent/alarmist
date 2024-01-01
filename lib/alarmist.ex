@@ -112,4 +112,18 @@ defmodule Alarmist do
     alarm_id = String.to_atom("Elixir." <> alarm_id_part)
     {defining_module, alarm_id}
   end
+
+  @doc """
+  Manually add a rule-based alarm
+
+  Use this when not using `defalarm`.
+
+  After this call, Alarmist will watch for alarms to be set based on the
+  supplied rules and set or clear the specified alarm ID. The alarm ID
+  needs to be unique.
+  """
+  @spec remove_synthetic_alarm(Alarmist.alarm_id()) :: :ok
+  def remove_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
+    Handler.remove_synthetic_alarm(alarm_id)
+  end
 end
