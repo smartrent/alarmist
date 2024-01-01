@@ -1,6 +1,14 @@
 defmodule AlarmistTest do
   use ExUnit.Case, async: false
 
+  setup do
+    :alarm_handler.clear_alarm(AlarmId1)
+    :alarm_handler.clear_alarm(AlarmId2)
+    :alarm_handler.clear_alarm(AlarmId3)
+    :alarm_handler.clear_alarm(AlarmId10)
+    :alarm_handler.clear_alarm(TestAlarm)
+  end
+
   test "basic usage" do
     defmodule MyAlarms do
       use Alarmist.Definition
