@@ -297,6 +297,21 @@ defmodule Alarmist.Engine do
     }
   end
 
+  @spec handle_timeout(t(), Alarmist.alarm_id(), :set | :clear, reference()) :: t()
+  def handle_timeout(engine, expiry_alarm_id, value, timer_id) do
+    {popped_timer_id, new_timers} = Map.pop(engine.timers, expiry_alarm_id)
+    new_engine = %{engine | timers: new_timers}
+
+    if popped_timer_id == timer_id do
+      case value do
+        :set -> set_alarm(new_engine, expiry_alarm_id, [])
+        :clear -> clear_alarm(new_engine, expiry_alarm_id)
+      end
+    else
+      new_engine
+    end
+  end
+
   @doc false
   @spec set_state(t(), Alarmist.alarm_id(), any()) :: t()
   def set_state(engine, alarm_id, state) do

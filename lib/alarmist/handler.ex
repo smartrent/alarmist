@@ -88,11 +88,14 @@ defmodule Alarmist.Handler do
   end
 
   @impl :gen_event
-  def handle_info({:check_alarm, _alarm_id}, state) do
-    # alarm_type = get_alarm_type(alarm_id)
-    # alarm_def = {alarm_type, alarm_id, get_alarm_options(alarm_id)}
-    # effects = @rule_type_modules[alarm_type].on_check(alarm_def, state)
-    # Enum.each(effects, &process_side_effect/1)
+  def handle_info({:timeout, expiry_alarm_id, value, timer_id}, state) do
+    engine = Engine.handle_timeout(state.engine, expiry_alarm_id, value, timer_id)
+    engine = commit_side_effects(engine)
+    {:ok, %{state | engine: engine}}
+  end
+
+  def handle_info(message, state) do
+    Logger.error("Got #{inspect(message)}")
     {:ok, state}
   end
 
@@ -126,14 +129,13 @@ defmodule Alarmist.Handler do
     PropertyTable.put(Alarmist, [alarm_id, :status], :clear)
   end
 
-  defp run_side_effect(_) do
-    :ok
+  defp run_side_effect({:set_description, alarm_id, description}) do
+    PropertyTable.put(Alarmist, [alarm_id, :description], description)
   end
 
-  # defp run_side_effect({:add_check_interval, time_ms, alarm_id}) do
-  #   {:ok, timer_ref} = :timer.send_interval(time_ms, :alarm_handler, {:check_alarm, alarm_id})
-  #   :ok = PropertyTable.put(Alarmist, [alarm_id, :check_timer], timer_ref)
-  # end
+  defp run_side_effect({:start_timer, alarm_id, timeout, what, params}) do
+    Process.send_after(self(), {:timeout, alarm_id, what, params}, timeout)
+  end
 
   defp commit_side_effects(engine) do
     {engine, actions} = Engine.commit_side_effects(engine)
@@ -150,6 +152,5 @@ defmodule Alarmist.Handler do
   defp normalize_alarm(_other), do: :error
 
   defp normalize_alarm_id(alarm_id) when is_atom(alarm_id), do: alarm_id
-  defp normalize_alarm_id({alarm_id}) when is_atom(alarm_id), do: alarm_id
   defp normalize_alarm_id(_other), do: :error
 end
