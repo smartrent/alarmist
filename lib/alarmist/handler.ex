@@ -67,7 +67,6 @@ defmodule Alarmist.Handler do
       {alarm_id, description} ->
         engine = Engine.set_alarm(state.engine, alarm_id, description)
         engine = commit_side_effects(engine)
-
         {:ok, %{state | engine: engine}}
 
       :error ->

@@ -5,133 +5,126 @@ defmodule Alarmist.DefAlarmTest do
     defmodule IdentityTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         MyAlarmId
       end
     end
 
-    expected_result = %{ResultAlarmId => [{Alarmist.Ops, :copy, [ResultAlarmId, MyAlarmId]}]}
-    assert IdentityTest.__get_alarms() == [expected_result]
+    expected_result = [{Alarmist.Ops, :copy, [IdentityTest, MyAlarmId]}]
+    assert IdentityTest.__get_alarm() == expected_result
   end
 
   test "and" do
     defmodule AndTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         AlarmId1 and AlarmId2
       end
     end
 
-    expected_result = %{
-      ResultAlarmId => [{Alarmist.Ops, :logical_and, [ResultAlarmId, AlarmId1, AlarmId2]}]
-    }
-
-    assert AndTest.__get_alarms() == [expected_result]
+    expected_result = [{Alarmist.Ops, :logical_and, [AndTest, AlarmId1, AlarmId2]}]
+    assert AndTest.__get_alarm() == expected_result
   end
 
   test "not" do
     defmodule NotTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         not AlarmId1
       end
     end
 
-    expected_result = %{
-      ResultAlarmId => [{Alarmist.Ops, :logical_not, [ResultAlarmId, AlarmId1]}]
-    }
-
-    assert NotTest.__get_alarms() == [expected_result]
+    expected_result = [{Alarmist.Ops, :logical_not, [NotTest, AlarmId1]}]
+    assert NotTest.__get_alarm() == expected_result
   end
 
   test "debounce" do
     defmodule DebounceTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         debounce(AlarmId1, 1000)
       end
     end
 
-    expected_result = %{
-      ResultAlarmId => [{Alarmist.Ops, :debounce, [ResultAlarmId, AlarmId1, 1000]}]
-    }
-
-    assert DebounceTest.__get_alarms() == [expected_result]
+    expected_result = [{Alarmist.Ops, :debounce, [DebounceTest, AlarmId1, 1000]}]
+    assert DebounceTest.__get_alarm() == expected_result
   end
 
   test "hold" do
     defmodule HoldTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         hold(AlarmId1, 2000)
       end
     end
 
-    expected_result = %{
-      ResultAlarmId => [{Alarmist.Ops, :hold, [ResultAlarmId, AlarmId1, 2000]}]
-    }
-
-    assert HoldTest.__get_alarms() == [expected_result]
+    expected_result = [{Alarmist.Ops, :hold, [HoldTest, AlarmId1, 2000]}]
+    assert HoldTest.__get_alarm() == expected_result
   end
 
   test "intensity" do
     defmodule IntensityTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         intensity(AlarmId1, 5, 10000)
       end
     end
 
-    expected_result = %{
-      ResultAlarmId => [{Alarmist.Ops, :intensity, [ResultAlarmId, AlarmId1, 5, 10000]}]
-    }
-
-    assert IntensityTest.__get_alarms() == [expected_result]
+    expected_result = [{Alarmist.Ops, :intensity, [IntensityTest, AlarmId1, 5, 10000]}]
+    assert IntensityTest.__get_alarm() == expected_result
   end
 
   test "and and or" do
     defmodule AndOrTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         AlarmId1 or (AlarmId2 and AlarmId3)
       end
     end
 
-    expected_result = %{
-      ResultAlarmId => [
-        {Alarmist.Ops, :logical_or, [ResultAlarmId, AlarmId1, :"Elixir.ResultAlarmId.0"]},
-        {Alarmist.Ops, :logical_and, [:"Elixir.ResultAlarmId.0", AlarmId2, AlarmId3]}
-      ]
-    }
+    expected_result = [
+      {Alarmist.Ops, :logical_or,
+       [AndOrTest, AlarmId1, :"Elixir.Alarmist.DefAlarmTest.AndOrTest.0"]},
+      {Alarmist.Ops, :logical_and,
+       [:"Elixir.Alarmist.DefAlarmTest.AndOrTest.0", AlarmId2, AlarmId3]}
+    ]
 
-    assert AndOrTest.__get_alarms() == [expected_result]
+    assert AndOrTest.__get_alarm() == expected_result
   end
 
   test "compound with not" do
     defmodule CompoundWithNotTest do
       use Alarmist.Definition
 
-      defalarm ResultAlarmId do
+      defalarm do
         (Id1 and Id2) or not (Id2 and Id3)
       end
     end
 
-    expected_result = %{
-      ResultAlarmId => [
-        {Alarmist.Ops, :logical_or,
-         [ResultAlarmId, :"Elixir.ResultAlarmId.0", :"Elixir.ResultAlarmId.2"]},
-        {Alarmist.Ops, :logical_not, [:"Elixir.ResultAlarmId.2", :"Elixir.ResultAlarmId.1"]},
-        {Alarmist.Ops, :logical_and, [:"Elixir.ResultAlarmId.1", Id2, Id3]},
-        {Alarmist.Ops, :logical_and, [:"Elixir.ResultAlarmId.0", Id1, Id2]}
-      ]
-    }
+    expected_result = [
+      {Alarmist.Ops, :logical_or,
+       [
+         CompoundWithNotTest,
+         :"Elixir.Alarmist.DefAlarmTest.CompoundWithNotTest.0",
+         :"Elixir.Alarmist.DefAlarmTest.CompoundWithNotTest.2"
+       ]},
+      {Alarmist.Ops, :logical_not,
+       [
+         :"Elixir.Alarmist.DefAlarmTest.CompoundWithNotTest.2",
+         :"Elixir.Alarmist.DefAlarmTest.CompoundWithNotTest.1"
+       ]},
+      {Alarmist.Ops, :logical_and,
+       [:"Elixir.Alarmist.DefAlarmTest.CompoundWithNotTest.1", Id2, Id3]},
+      {Alarmist.Ops, :logical_and,
+       [:"Elixir.Alarmist.DefAlarmTest.CompoundWithNotTest.0", Id1, Id2]}
+    ]
 
-    assert CompoundWithNotTest.__get_alarms() == [expected_result]
+    assert CompoundWithNotTest.__get_alarm() == expected_result
   end
 end
