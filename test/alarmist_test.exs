@@ -10,10 +10,10 @@ defmodule AlarmistTest do
   end
 
   test "basic usage" do
-    defmodule MyAlarms do
+    defmodule TestAlarm do
       use Alarmist.Definition
 
-      defalarm TestAlarm do
+      defalarm do
         AlarmId1 and AlarmId2
       end
     end
@@ -21,7 +21,7 @@ defmodule AlarmistTest do
     Alarmist.subscribe(TestAlarm)
     refute_received _
 
-    Alarmist.add_synthetic_alarm(MyAlarms.TestAlarm)
+    Alarmist.add_synthetic_alarm(TestAlarm)
     refute_received _
 
     :alarm_handler.set_alarm({AlarmId1, []})
@@ -49,63 +49,63 @@ defmodule AlarmistTest do
   end
 
   test "trigger on register" do
-    defmodule MyAlarms6 do
+    defmodule MyAlarm6 do
       use Alarmist.Definition
 
-      defalarm TestAlarm do
+      defalarm do
         AlarmId10
       end
     end
 
-    Alarmist.subscribe(TestAlarm)
+    Alarmist.subscribe(MyAlarm6)
     :alarm_handler.set_alarm({AlarmId10, []})
     refute_received _
 
-    Alarmist.add_synthetic_alarm(MyAlarms6.TestAlarm)
+    Alarmist.add_synthetic_alarm(MyAlarm6)
 
     assert_receive %PropertyTable.Event{
       table: Alarmist,
-      property: [TestAlarm, :status],
+      property: [MyAlarm6, :status],
       value: :set
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarms6.TestAlarm)
+    Alarmist.remove_synthetic_alarm(MyAlarm6)
   end
 
   test "cleared when rule deleted" do
-    defmodule MyAlarms7 do
+    defmodule MyAlarm7 do
       use Alarmist.Definition
 
-      defalarm TestAlarm do
+      defalarm do
         AlarmId10
       end
     end
 
-    Alarmist.subscribe(TestAlarm)
-    Alarmist.add_synthetic_alarm(MyAlarms7.TestAlarm)
+    Alarmist.subscribe(MyAlarm7)
+    Alarmist.add_synthetic_alarm(MyAlarm7)
 
     :alarm_handler.set_alarm({AlarmId10, []})
 
     assert_receive %PropertyTable.Event{
       table: Alarmist,
-      property: [TestAlarm, :status],
+      property: [MyAlarm7, :status],
       value: :set
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarms7.TestAlarm)
+    Alarmist.remove_synthetic_alarm(MyAlarm7)
 
     assert_receive %PropertyTable.Event{
       table: Alarmist,
-      property: [TestAlarm, :status],
+      property: [MyAlarm7, :status],
       value: :clear
     }
   end
 
   test "hold rules" do
-    defmodule MyAlarms2 do
+    defmodule HoldAlarm do
       use Alarmist.Definition
 
-      defalarm HoldAlarm do
+      defalarm do
         # Hold TestAlarm on for 250 ms after AlarmID1 goes away
         hold(AlarmId1, 250)
       end
@@ -113,7 +113,7 @@ defmodule AlarmistTest do
 
     Alarmist.subscribe(HoldAlarm)
     Alarmist.subscribe(AlarmId1)
-    Alarmist.add_synthetic_alarm(MyAlarms2.HoldAlarm)
+    Alarmist.add_synthetic_alarm(HoldAlarm)
     :alarm_handler.set_alarm({AlarmId1, []})
 
     assert_receive %PropertyTable.Event{
@@ -150,16 +150,16 @@ defmodule AlarmistTest do
   end
 
   test "intensity rules" do
-    defmodule MyAlarms3 do
+    defmodule IntensityAlarm do
       use Alarmist.Definition
 
-      defalarm IntensityAlarm do
+      defalarm do
         intensity(AlarmId1, 3, 250)
       end
     end
 
     Alarmist.subscribe(IntensityAlarm)
-    Alarmist.add_synthetic_alarm(MyAlarms3.IntensityAlarm)
+    Alarmist.add_synthetic_alarm(IntensityAlarm)
     :alarm_handler.set_alarm({AlarmId1, 1})
     :alarm_handler.clear_alarm(AlarmId1)
     :alarm_handler.set_alarm({AlarmId1, 2})
@@ -186,17 +186,17 @@ defmodule AlarmistTest do
   end
 
   test "debounce rules" do
-    defmodule MyAlarms4 do
+    defmodule DebounceAlarm do
       use Alarmist.Definition
 
-      defalarm DebounceAlarm do
+      defalarm do
         debounce(AlarmId2, 100)
       end
     end
 
     Alarmist.subscribe(DebounceAlarm)
     Alarmist.subscribe(AlarmId2)
-    Alarmist.add_synthetic_alarm(MyAlarms4.DebounceAlarm)
+    Alarmist.add_synthetic_alarm(DebounceAlarm)
 
     # Test the transient case
     :alarm_handler.set_alarm({AlarmId2, []})
@@ -252,20 +252,20 @@ defmodule AlarmistTest do
       value: :clear
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarms2.DebounceAlarm)
+    Alarmist.remove_synthetic_alarm(DebounceAlarm)
   end
 
   test "compound rules" do
-    defmodule MyAlarms5 do
+    defmodule TestAlarm2 do
       use Alarmist.Definition
 
-      defalarm TestAlarm2 do
+      defalarm do
         (Id1 and Id2) or not (Id2 and Id3)
       end
     end
 
     Alarmist.subscribe(TestAlarm2)
-    Alarmist.add_synthetic_alarm(MyAlarms5.TestAlarm2)
+    Alarmist.add_synthetic_alarm(TestAlarm2)
 
     assert_receive %PropertyTable.Event{
       table: Alarmist,
@@ -283,6 +283,6 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
-    Alarmist.remove_synthetic_alarm(MyAlarms5.TestAlarm2)
+    Alarmist.remove_synthetic_alarm(TestAlarm2)
   end
 end

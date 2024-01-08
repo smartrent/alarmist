@@ -1,11 +1,9 @@
-defmodule TestDef do
+defmodule MyTestAlarm do
   @moduledoc false
 
   use Alarmist.Definition
 
-  for interface <- [VintageNetEth0, VintageNetWlan0] do
-    defalarm interface do
-      Something
-    end
+  defalarm do
+    AlarmId1 and AlarmId2
   end
 end

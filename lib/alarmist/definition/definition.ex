@@ -18,39 +18,39 @@ defmodule Alarmist.Definition do
     end
   end
 
-  @spec assert_no_duplicate(map(), module(), number(), String.t()) :: no_return()
-  def assert_no_duplicate(alarms, name, line, file) do
-    if Map.has_key?(alarms, name) do
+  @spec assert_not_defined(map(), number(), String.t()) :: no_return()
+  def assert_not_defined(alarm_attr, line, file) do
+    if alarm_attr != nil do
       raise CompileError,
         line: line,
         file: file,
-        description: "An alarm with name '#{name}' is already defined in this module!"
+        description: "Cannot define multiple alarms in a single module!"
     end
   end
 
   defmacro __using__(_options) do
     quote do
       import Alarmist.Definition
-      Module.register_attribute(__MODULE__, :__alarmist_alarms, persist: true)
-      Module.put_attribute(__MODULE__, :__alarmist_alarms, %{})
+      Module.register_attribute(__MODULE__, :__alarmist_alarm, persist: true)
+      Module.put_attribute(__MODULE__, :__alarmist_alarm, nil)
 
-      @spec __get_alarms() :: map()
-      def __get_alarms() do
-        __MODULE__.__info__(:attributes)[:__alarmist_alarms]
+      @spec __get_alarm() :: map()
+      def __get_alarm() do
+        __MODULE__.__info__(:attributes)[:__alarmist_alarm]
       end
     end
   end
 
-  defmacro defalarm(alarm_name, do: {:__aliases__, _, [block]}) do
+  defmacro defalarm(do: {:__aliases__, _, [block]}) do
     quote do
-      alarm_name = Module.concat([unquote(alarm_name)])
+      alarm_name = __MODULE__
       compiled = Alarmist.Compiler.compile(alarm_name, Module.concat([unquote(block)]))
-      assert_no_duplicate(@__alarmist_alarms, alarm_name, __ENV__.line, __ENV__.file)
-      @__alarmist_alarms Map.put(@__alarmist_alarms, alarm_name, compiled)
+      assert_not_defined(@__alarmist_alarm, __ENV__.line, __ENV__.file)
+      @__alarmist_alarm compiled
     end
   end
 
-  defmacro defalarm(alarm_name, do: block) do
+  defmacro defalarm(do: block) do
     {_item, acc} =
       Macro.postwalk(block, nil, fn item, _acc ->
         acc = process_node(item)
@@ -58,10 +58,10 @@ defmodule Alarmist.Definition do
       end)
 
     quote do
-      alarm_name = Module.concat([unquote(alarm_name)])
+      alarm_name = __MODULE__
       compiled = Alarmist.Compiler.compile(alarm_name, unquote(acc))
-      assert_no_duplicate(@__alarmist_alarms, alarm_name, __ENV__.line, __ENV__.file)
-      @__alarmist_alarms Map.put(@__alarmist_alarms, alarm_name, compiled)
+      assert_not_defined(@__alarmist_alarm, __ENV__.line, __ENV__.file)
+      @__alarmist_alarm compiled
     end
   end
 end

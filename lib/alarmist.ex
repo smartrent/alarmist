@@ -97,20 +97,9 @@ defmodule Alarmist do
   needs to be unique.
   """
   @spec add_synthetic_alarm(module()) :: :ok
-  def add_synthetic_alarm(compiled_alarm) when is_atom(compiled_alarm) do
-    {defining_module, alarm_id} = split_alarm(compiled_alarm)
-
-    [alarms] = defining_module.__get_alarms()
-    compiled_rules = alarms[alarm_id]
-
+  def add_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
+    compiled_rules = alarm_id.__get_alarm()
     add_synthetic_alarm(alarm_id, compiled_rules)
-  end
-
-  defp split_alarm(alarm_name) do
-    [alarm_id_part | defining_module_r] = Module.split(alarm_name) |> Enum.reverse()
-    defining_module = defining_module_r |> Enum.reverse() |> Module.concat()
-    alarm_id = String.to_atom("Elixir." <> alarm_id_part)
-    {defining_module, alarm_id}
   end
 
   @doc """
