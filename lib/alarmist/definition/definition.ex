@@ -1,12 +1,18 @@
 defmodule Alarmist.Definition do
   @moduledoc false
 
-  defp process_node(item) when is_atom(item), do: Module.concat([item])
-  defp process_node({:__aliases__, _, [item]}), do: Module.concat([item])
-  defp process_node(number) when is_number(number), do: number
+  defp process_node(item, _caller) when is_atom(item), do: Module.concat([item])
 
-  defp process_node({op, _meta, children}) do
-    processed_children = Enum.map(children, &process_node/1)
+  defp process_node({:__aliases__, _, [_item]} = node, caller) do
+    # Expand this alias in the context of the caller
+    expanded_name = Macro.expand(node, caller)
+    Module.concat([expanded_name])
+  end
+
+  defp process_node(number, _caller) when is_number(number), do: number
+
+  defp process_node({op, _meta, children}, caller) do
+    processed_children = Enum.map(children, fn child -> process_node(child, caller) end)
 
     case op do
       :not -> [:not | processed_children]
@@ -53,7 +59,7 @@ defmodule Alarmist.Definition do
   defmacro defalarm(do: block) do
     {_item, acc} =
       Macro.postwalk(block, nil, fn item, _acc ->
-        acc = process_node(item)
+        acc = process_node(item, __CALLER__)
         {item, acc}
       end)
 
