@@ -127,4 +127,23 @@ defmodule Alarmist.DefAlarmTest do
 
     assert CompoundWithNotTest.__get_alarm() == expected_result
   end
+
+  test "complex defalarm with module attribute" do
+    defmodule ModAttrTest do
+      use Alarmist.Definition
+
+      @debounce_value 1_000
+
+      defalarm do
+        timeout_value = @debounce_value + 100
+        debounce(AlarmID1, timeout_value)
+      end
+    end
+
+    expected_result = [
+      {Alarmist.Ops, :debounce, [Alarmist.DefAlarmTest.ModAttrTest, AlarmID1, 1100]}
+    ]
+
+    assert ModAttrTest.__get_alarm() == expected_result
+  end
 end
