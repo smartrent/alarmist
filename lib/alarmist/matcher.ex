@@ -1,4 +1,4 @@
-defmodule Alarmist.Rules.Matcher do
+defmodule Alarmist.Matcher do
   @moduledoc """
   Match logic using atom-based keys used in PropertyTable.
   Basically it's `PropertyTable.Matcher.StringPath` but using atoms instead of strings.

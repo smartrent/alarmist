@@ -13,7 +13,7 @@ defmodule Alarmist.Application do
         {Alarmist.Handler, config}
       )
 
-    children = [{PropertyTable, name: Alarmist, matcher: Alarmist.Rules.Matcher}]
+    children = [{PropertyTable, name: Alarmist, matcher: Alarmist.Matcher}]
 
     opts = [strategy: :one_for_one, name: Alarmist.Supervisor]
     Supervisor.start_link(children, opts)
