@@ -12,7 +12,7 @@ defmodule Alarmist.Ops do
   listen on changes to an alarm ID in its namespace, a copy rule can glue them
   together.
   """
-  @spec copy(Engine.t(), list()) :: Engine.t()
+  @spec copy(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def copy(engine, [output, input]) do
     {engine, value} = Engine.cache_get(engine, input)
     Engine.cache_put(engine, output, value, [])
@@ -24,7 +24,7 @@ defmodule Alarmist.Ops do
   This is useful for "proof-of-life" alarms where the presence of an alarm is a
   good thing.
   """
-  @spec logical_not(Engine.t(), list()) :: Engine.t()
+  @spec logical_not(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_not(engine, [output, input]) do
     {engine, value} = Engine.cache_get(engine, input)
 
@@ -40,7 +40,7 @@ defmodule Alarmist.Ops do
   could be a specific remediation when one way stops working. However, if every
   way is broken, the device could trigger a more significant remediation.
   """
-  @spec logical_and(Engine.t(), list()) :: Engine.t()
+  @spec logical_and(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_and(engine, [output | inputs]) do
     {engine, value} = do_logical_and(engine, inputs)
     Engine.cache_put(engine, output, value, [])
@@ -69,7 +69,7 @@ defmodule Alarmist.Ops do
   no great remediation other than reboot. This allows a handler to register for
   a combined alarm so that it's decoupled from the alarms that trigger it.
   """
-  @spec logical_or(Engine.t(), list()) :: Engine.t()
+  @spec logical_or(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_or(engine, [output | inputs]) do
     {engine, value} = do_logical_or(engine, inputs)
     Engine.cache_put(engine, output, value, nil)
@@ -107,7 +107,7 @@ defmodule Alarmist.Ops do
   case, it might be good to delay switching to an offline mode for a little bit
   in the hopes that the problem will naturally go away.
   """
-  @spec debounce(Engine.t(), list()) :: Engine.t()
+  @spec debounce(Engine.t(), [Alarmist.alarm_id(), ...]) :: Engine.t()
   def debounce(engine, [output, input, timeout]) do
     {engine, value} = Engine.cache_get(engine, input)
 
@@ -135,7 +135,7 @@ defmodule Alarmist.Ops do
   programmatically lets you manually clear the alarm if you'd like that feature
   enabled again immediately like if you're debugging.
   """
-  @spec hold(Engine.t(), list()) :: Engine.t()
+  @spec hold(Engine.t(), [Alarmist.alarm_id(), ...]) :: Engine.t()
   def hold(engine, [output, input, timeout]) do
     {engine, value} = Engine.cache_get(engine, input)
 
@@ -166,7 +166,8 @@ defmodule Alarmist.Ops do
   be desirable to raise an alarm. That alarm could disable WiFi for a while.
   Combine this with `hold/2` to manage the duration that WiFi is off.
   """
-  @spec intensity(Engine.t(), list()) :: Engine.t()
+  @spec intensity(Engine.t(), [Alarmist.alarm_id(), ...]) ::
+          Engine.t()
   def intensity(engine, [output, input, count, duration]) do
     {engine, value} = Engine.cache_get(engine, input)
 
