@@ -1,13 +1,23 @@
 defmodule Alarmist.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @description "Manage Alarms"
+  @source_url "https://github.com/smartrent/alarmist"
+
   def project do
     [
       app: :alarmist,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.15",
+      description: @description,
+      package: package(),
+      source_url: @source_url,
       docs: docs(),
       start_permanent: Mix.env() == :prod,
+      dialyzer: [
+        flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs]
+      ],
       deps: deps(),
       preferred_cli_env: %{
         docs: :docs,
@@ -26,10 +36,19 @@ defmodule Alarmist.MixProject do
     ]
   end
 
+  defp package do
+    %{
+      licenses: ["Apache-2.0"],
+      links: %{"GitHub" => @source_url}
+    }
+  end
+
   defp docs do
     [
-      extras: ["README.md"],
-      main: "readme"
+      extras: ["README.md", "CHANGELOG.md"],
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: @source_url
     ]
   end
 
