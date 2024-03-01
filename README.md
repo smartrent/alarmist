@@ -277,6 +277,9 @@ iex> flush
 }
 ```
 
+NOTE: The event format will likely change in the future to avoid exposing that
+Alarmist uses the PropertyTable library internally.
+
 ## License
 
 Alarmist is licensed under the Apache License, Version 2.0.

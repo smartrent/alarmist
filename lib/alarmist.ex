@@ -48,8 +48,18 @@ defmodule Alarmist do
   Events will be delivered to the calling process as:
 
   ```elixir
-
+  %PropertyTable.Event{
+    table: Alarmist,
+    property: [TheAlarmId, :status],
+    value: :set,
+    timestamp: -576460718306150542,
+    previous_value: nil,
+    previous_timestamp: nil
+  }
   ```
+
+  This will almost certainly change in the future to avoid exposing that the
+  PropertyTable library is used to manage subscriptions.
   """
   @spec subscribe(alarm_id()) :: :ok
   def subscribe(alarm_id) when is_atom(alarm_id) do
