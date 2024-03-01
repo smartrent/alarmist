@@ -1,7 +1,7 @@
 defmodule Alarmist.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @description "Manage Alarms"
   @source_url "https://github.com/smartrent/alarmist"
 
