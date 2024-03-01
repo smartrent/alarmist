@@ -48,8 +48,8 @@ flexible, it's also helpful to have a convention.
 
 For Elixir code, name alarms as you would a module. If you have helper functions
 for `AlarmDescription` data, then put those functions in a `defmodule` of the
-same name as the alarm. There's no need to have helper functions and if you
-don't, don't bother creating a module.
+same name as the alarm. This is optional, so there's no need to create an empty
+module if you don't have helper functions.
 
 For libraries, alarms are public API. There's no explicit place for alarms in
 Hex documentation, so add them where you think best. The important parts are to
@@ -75,8 +75,8 @@ have met the remediation criteria or not.
 
 As before, networking issues make good examples. Home and business networks have
 some normal flakiness that doesn't require remediation. Sometimes just waiting a
-bit resolves a situation. The code that detects whether the network is down can
-simply set an alarm stating it is. `Alarmist` provides primitives for creating a
+bit resolves a situation. Code that detects a network outage can simply set an
+alarm stating it is down. `Alarmist` provides primitives for creating a
 synthetic alarm that doesn't get set unless the network is down longer than a
 minimum amount of time. `Alarmist` can also raise an alarm if the network is
 bouncing up and down a lot since that's also problematic, but in a way that the
@@ -199,8 +199,6 @@ goes down since that might be a hiccup.
 The following code defines a synthetic alarm for unstable WiFi,
 `Demo.WiFiUnstable`. The timeouts are short to make it easier to copy/paste into
 an IEx prompt and manually run.
-
-Here's the alarm definition and some helpers:
 
 ```elixir
 defmodule Demo.WiFiUnstable do
