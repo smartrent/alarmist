@@ -5,9 +5,9 @@
 [![CircleCI](https://circleci.com/gh/smartrent/alarmist.svg?style=svg)](https://circleci.com/gh/smartrent/alarmist)
 
 Alarmist extends Erlang's [Alarm
-Handler](https://www.erlang.org/doc/man/alarm_handler) to manage, react to, and
-generate derivative alarms. Code that sets and clears alarms need only depend on
-`:alarm_handler`. Alarmist is for the side that has to deal with alarms.
+Handler](https://www.erlang.org/doc/man/alarm_handler) to manage, subscribe to,
+and create synthetic alarms. Code that sets and clears alarms need only depend
+on `:alarm_handler`. Alarmist is for the side that has to deal with alarms.
 
 ## What are alarms
 

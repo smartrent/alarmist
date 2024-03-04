@@ -1,8 +1,8 @@
 defmodule Alarmist.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
-  @description "Manage Alarms"
+  @version "0.1.2"
+  @description "Manage, subscribe and create alarms compatible with Erlang's built in Alarm Handler"
   @source_url "https://github.com/smartrent/alarmist"
 
   def project do

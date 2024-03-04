@@ -2,6 +2,10 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.1.2 - 2024-03-04
+
+First public release
+
 ## v0.1.1 - 2024-02-29
 
 * Updates
