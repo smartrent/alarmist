@@ -1,12 +1,66 @@
 defmodule AlarmistTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   setup do
-    :alarm_handler.clear_alarm(AlarmId1)
-    :alarm_handler.clear_alarm(AlarmId2)
-    :alarm_handler.clear_alarm(AlarmId3)
-    :alarm_handler.clear_alarm(AlarmId10)
+    # Clean up any leftover alarms from previous runs
+    Enum.each(Alarmist.current_alarms(), &:alarm_handler.clear_alarm(&1))
+  end
+
+  test "setting and clearing one alarm" do
+    Alarmist.subscribe(TestAlarm)
+    refute_received _
+
+    :alarm_handler.set_alarm({TestAlarm, []})
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :set
+    }
+
+    assert TestAlarm in Alarmist.current_alarms()
+
     :alarm_handler.clear_alarm(TestAlarm)
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :clear
+    }
+
+    refute_receive _
+  end
+
+  test "setting an alarm without a description" do
+    Alarmist.subscribe(TestAlarm)
+    refute_received _
+
+    :alarm_handler.set_alarm(TestAlarm)
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :set
+    }
+
+    :alarm_handler.clear_alarm(TestAlarm)
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :clear
+    }
+
+    refute_receive _
+  end
+
+  test "ignores unsupported alarms" do
+    assert capture_log(fn ->
+             :alarm_handler.set_alarm("TestAlarmAsString")
+             Process.sleep(100)
+           end) =~ "Ignoring set for unsupported alarm"
   end
 
   test "basic usage" do

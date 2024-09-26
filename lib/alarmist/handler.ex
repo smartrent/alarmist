@@ -64,25 +64,27 @@ defmodule Alarmist.Handler do
   @impl :gen_event
   def handle_event({:set_alarm, alarm}, state) do
     case normalize_alarm(alarm) do
-      {alarm_id, description} ->
+      {:ok, {alarm_id, description}} ->
         engine = Engine.set_alarm(state.engine, alarm_id, description)
         engine = commit_side_effects(engine)
         {:ok, %{state | engine: engine}}
 
       :error ->
-        state
+        Logger.warning("Ignoring set for unsupported alarm: #{inspect(alarm)}")
+        {:ok, state}
     end
   end
 
   def handle_event({:clear_alarm, alarm_id}, state) do
     case normalize_alarm_id(alarm_id) do
-      :error ->
-        {:ok, state}
-
-      alarm_id ->
+      {:ok, alarm_id} ->
         engine = Engine.clear_alarm(state.engine, alarm_id)
         engine = commit_side_effects(engine)
         {:ok, %{state | engine: engine}}
+
+      :error ->
+        Logger.warning("Ignoring clear for unsupported alarm ID: #{inspect(alarm_id)}")
+        {:ok, state}
     end
   end
 
@@ -147,14 +149,14 @@ defmodule Alarmist.Handler do
     engine
   end
 
-  defp normalize_alarm({alarm_id, _description} = alarm) when is_atom(alarm_id), do: alarm
-  defp normalize_alarm(alarm_id) when is_atom(alarm_id), do: {alarm_id, []}
+  defp normalize_alarm({alarm_id, _description} = alarm) when is_atom(alarm_id), do: {:ok, alarm}
+  defp normalize_alarm(alarm_id) when is_atom(alarm_id), do: {:ok, {alarm_id, []}}
 
   defp normalize_alarm(alarm) when is_tuple(alarm) and is_atom(elem(alarm, 0)),
-    do: {elem(alarm, 0), tl(Tuple.to_list(alarm))}
+    do: {:ok, {elem(alarm, 0), tl(Tuple.to_list(alarm))}}
 
   defp normalize_alarm(_other), do: :error
 
-  defp normalize_alarm_id(alarm_id) when is_atom(alarm_id), do: alarm_id
+  defp normalize_alarm_id(alarm_id) when is_atom(alarm_id), do: {:ok, alarm_id}
   defp normalize_alarm_id(_other), do: :error
 end
