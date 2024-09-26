@@ -24,7 +24,19 @@ defmodule Alarmist.Handler do
   end
 
   @impl :gen_event
-  def init({options, {:alarm_handler, existing_alarms}}) do
+  def init(init_args) do
+    # Handlers can be added or swapped:
+    #  1. The expected use is to swap with the default SASL :alarm_handler. That handler's
+    #     terminate callback returns the alarms it has accumulated.
+    #  2. If swapped and there's no current handler or an unexpected one, just pull out the options.
+    #  3. If added, then the options are the only argument.
+    {options, existing_alarms} =
+      case init_args do
+        {opts, {:alarm_handler, alarms}} -> {opts, alarms}
+        {opts, _error} -> {opts, []}
+        opts when is_list(opts) -> {opts, []}
+      end
+
     engine = Engine.init(&lookup/1)
 
     # Cache all of the existing alarms.
