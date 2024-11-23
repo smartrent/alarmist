@@ -1,4 +1,5 @@
 defmodule AlarmistTest do
+  alias AlarmistTest.TestAlarm
   use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
@@ -20,7 +21,8 @@ defmodule AlarmistTest do
       value: :set
     }
 
-    assert TestAlarm in Alarmist.current_alarms()
+    assert Alarmist.current_alarms()
+           |> Enum.any?(fn {alarm_id, _description} -> alarm_id == TestAlarm end)
 
     :alarm_handler.clear_alarm(TestAlarm)
 
