@@ -75,13 +75,16 @@ defmodule Alarmist do
   end
 
   @doc """
-  Return all of the currently set alarms
+  Return all of the currently set alarms and their descriptions
   """
-  @spec current_alarms() :: [alarm_id()]
+  @spec current_alarms() :: [{alarm_id(), any()}]
   def current_alarms() do
-    PropertyTable.match(Alarmist, [:_, :status])
+    PropertyTable.match(Alarmist, [:_])
     |> Enum.filter(fn {_, status} -> status == :set end)
     |> Enum.map(fn {[alarm_id, _], _} -> alarm_id end)
+    |> Enum.map(fn alarm_id ->
+      {alarm_id, PropertyTable.get(Alarmist, [alarm_id, :description], [])}
+    end)
   end
 
   @doc """
