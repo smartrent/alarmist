@@ -5,7 +5,7 @@ defmodule AlarmistTest do
 
   setup do
     # Clean up any leftover alarms from previous runs
-    Enum.each(Alarmist.current_alarms(), &:alarm_handler.clear_alarm(&1))
+    Enum.each(Alarmist.get_alarm_ids(), &:alarm_handler.clear_alarm(&1))
   end
 
   test "setting and clearing one alarm" do
@@ -21,7 +21,8 @@ defmodule AlarmistTest do
                    }
                    when previous_state in [nil, :clear]
 
-    assert TestAlarm in Alarmist.current_alarms()
+    assert {TestAlarm, nil} in Alarmist.get_alarms()
+    assert TestAlarm in Alarmist.get_alarm_ids()
 
     :alarm_handler.clear_alarm(TestAlarm)
 
@@ -30,6 +31,9 @@ defmodule AlarmistTest do
       state: :clear,
       previous_state: :set
     }
+
+    refute {TestAlarm, nil} in Alarmist.get_alarms()
+    refute TestAlarm in Alarmist.get_alarm_ids()
 
     refute_receive _
   end
@@ -64,12 +68,12 @@ defmodule AlarmistTest do
     Alarmist.subscribe(TestAlarm)
     refute_received _
 
-    :alarm_handler.set_alarm({TestAlarm, [:test_description]})
+    :alarm_handler.set_alarm({TestAlarm, :test_description})
 
     assert_receive %Alarmist.Event{
                      id: TestAlarm,
                      state: :set,
-                     description: [:test_description],
+                     description: :test_description,
                      previous_state: previous_state
                    }
                    when previous_state in [nil, :clear]
@@ -77,7 +81,8 @@ defmodule AlarmistTest do
     # Need to pause for description write side effect
     Process.sleep(100)
 
-    assert TestAlarm in Alarmist.current_alarms()
+    assert {TestAlarm, :test_description} in Alarmist.get_alarms()
+    assert TestAlarm in Alarmist.get_alarm_ids()
 
     :alarm_handler.clear_alarm(TestAlarm)
 

@@ -81,13 +81,29 @@ defmodule Alarmist do
   end
 
   @doc """
-  Return all of the currently set alarms
+  Return a list of all active alarms
+
+  This returns `{id, description}` tuples. Note that `Alarmist` normalizes
+  alarms that were not set as 2-tuples so this may not match calls to
+  `:alarm_handler.set_alarm/1` exactly.
   """
-  @spec current_alarms() :: [alarm_id()]
-  def current_alarms() do
+  @spec get_alarms() :: [alarm()]
+  def get_alarms() do
     PropertyTable.get_all(Alarmist)
     |> Enum.flat_map(fn
-      {[alarm_id], {:set, _}} -> [alarm_id]
+      {[alarm_id], {:set, description}} -> [{alarm_id, description}]
+      _ -> []
+    end)
+  end
+
+  @doc """
+  Return a list of all active alarm IDs
+  """
+  @spec get_alarm_ids() :: [alarm_id()]
+  def get_alarm_ids() do
+    PropertyTable.get_all(Alarmist)
+    |> Enum.flat_map(fn
+      {[alarm_id], {:set, _description}} -> [alarm_id]
       _ -> []
     end)
   end
