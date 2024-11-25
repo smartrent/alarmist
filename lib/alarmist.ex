@@ -77,7 +77,7 @@ defmodule Alarmist do
   @doc """
   Return all of the currently set alarms and their descriptions
   """
-  @spec current_alarms() :: [{alarm_id(), any()}]
+  @spec current_alarms() :: [alarm()]
   def current_alarms() do
     PropertyTable.match(Alarmist, [:_])
     |> Enum.filter(fn {_, status} -> status == :set end)
