@@ -84,7 +84,7 @@ defmodule Alarmist do
     |> Enum.filter(fn {alarm_id, values} -> {[alarm_id, :status], :set} in values end)
     |> Enum.map(fn {alarm_id, values} ->
       {_, description} =
-        Enum.find(values, fn {path, _} -> List.last(path) == :description end)
+        Enum.find(values, {alarm_id, []}, fn {path, _} -> List.last(path) == :description end)
 
       {alarm_id, description}
     end)

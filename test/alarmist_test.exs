@@ -58,6 +58,34 @@ defmodule AlarmistTest do
     refute_receive _
   end
 
+  test "setting and clearing an alarm with a description" do
+    Alarmist.subscribe(TestAlarm)
+    refute_received _
+
+    :alarm_handler.set_alarm({TestAlarm, [:test_description]})
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :set
+    }
+
+    # Need to pause for description write side effect
+    Process.sleep(100)
+
+    assert {AlarmistTest.TestAlarm, [:test_description]} in Alarmist.current_alarms()
+
+    :alarm_handler.clear_alarm(TestAlarm)
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :clear
+    }
+
+    refute_receive _
+  end
+
   test "ignores unsupported alarms" do
     assert capture_log(fn ->
              :alarm_handler.set_alarm("TestAlarmAsString")
