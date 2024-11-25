@@ -80,10 +80,13 @@ defmodule Alarmist do
   @spec current_alarms() :: [alarm()]
   def current_alarms() do
     PropertyTable.match(Alarmist, [:_])
-    |> Enum.filter(fn {_, status} -> status == :set end)
-    |> Enum.map(fn {[alarm_id, _], _} -> alarm_id end)
-    |> Enum.map(fn alarm_id ->
-      {alarm_id, PropertyTable.get(Alarmist, [alarm_id, :description], [])}
+    |> Enum.group_by(fn {path, _} -> List.first(path) end)
+    |> Enum.filter(fn {alarm_id, values} -> {[alarm_id, :status], :set} in values end)
+    |> Enum.map(fn {alarm_id, values} ->
+      {_, description} =
+        Enum.find(values, fn {path, _} -> List.last(path) == :description end)
+
+      {alarm_id, description}
     end)
   end
 
