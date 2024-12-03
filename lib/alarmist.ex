@@ -91,6 +91,16 @@ defmodule Alarmist do
   end
 
   @doc """
+  Return all of the currently set alarm IDs
+  """
+  @spec current_alarm_ids() :: [alarm_id()]
+  def current_alarm_ids() do
+    PropertyTable.match(Alarmist, [:_])
+    |> Enum.filter(fn {_alarm_id, status} -> status == :set end)
+    |> Enum.map(fn {[alarm_id, _], _} -> alarm_id end)
+  end
+
+  @doc """
   Manually add a rule-based alarm
 
   Use this when not using `defalarm`.

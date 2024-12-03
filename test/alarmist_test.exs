@@ -6,7 +6,7 @@ defmodule AlarmistTest do
 
   setup do
     # Clean up any leftover alarms from previous runs
-    Enum.each(Alarmist.current_alarms(), &:alarm_handler.clear_alarm(&1))
+    Enum.each(Alarmist.current_alarm_ids(), &:alarm_handler.clear_alarm(&1))
   end
 
   test "setting and clearing one alarm" do
