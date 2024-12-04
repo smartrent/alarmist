@@ -1,11 +1,12 @@
 defmodule AlarmistTest do
+  alias AlarmistTest.TestAlarm
   use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
 
   setup do
     # Clean up any leftover alarms from previous runs
-    Enum.each(Alarmist.current_alarms(), &:alarm_handler.clear_alarm(&1))
+    Enum.each(Alarmist.current_alarm_ids(), &:alarm_handler.clear_alarm(&1))
   end
 
   test "setting and clearing one alarm" do
@@ -20,7 +21,8 @@ defmodule AlarmistTest do
       value: :set
     }
 
-    assert TestAlarm in Alarmist.current_alarms()
+    assert Alarmist.current_alarms()
+           |> Enum.any?(fn {alarm_id, _description} -> alarm_id == TestAlarm end)
 
     :alarm_handler.clear_alarm(TestAlarm)
 
@@ -44,6 +46,34 @@ defmodule AlarmistTest do
       property: [TestAlarm, :status],
       value: :set
     }
+
+    :alarm_handler.clear_alarm(TestAlarm)
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :clear
+    }
+
+    refute_receive _
+  end
+
+  test "setting and clearing an alarm with a description" do
+    Alarmist.subscribe(TestAlarm)
+    refute_received _
+
+    :alarm_handler.set_alarm({TestAlarm, [:test_description]})
+
+    assert_receive %PropertyTable.Event{
+      table: Alarmist,
+      property: [TestAlarm, :status],
+      value: :set
+    }
+
+    # Need to pause for description write side effect
+    Process.sleep(100)
+
+    assert {AlarmistTest.TestAlarm, [:test_description]} in Alarmist.current_alarms()
 
     :alarm_handler.clear_alarm(TestAlarm)
 
