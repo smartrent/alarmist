@@ -14,20 +14,18 @@ defmodule AlarmistTest do
 
     :alarm_handler.set_alarm({TestAlarm, []})
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :set
     }
 
     assert TestAlarm in Alarmist.current_alarms()
 
     :alarm_handler.clear_alarm(TestAlarm)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :clear
     }
 
     refute_receive _
@@ -39,18 +37,42 @@ defmodule AlarmistTest do
 
     :alarm_handler.set_alarm(TestAlarm)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :set
     }
 
     :alarm_handler.clear_alarm(TestAlarm)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :clear
+    }
+
+    refute_receive _
+  end
+
+  test "setting and clearing an alarm with a description" do
+    Alarmist.subscribe(TestAlarm)
+    refute_received _
+
+    :alarm_handler.set_alarm({TestAlarm, [:test_description]})
+
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :set
+    }
+
+    # Need to pause for description write side effect
+    Process.sleep(100)
+
+    assert {AlarmistTest.TestAlarm, [:test_description]} in Alarmist.current_alarms()
+
+    :alarm_handler.clear_alarm(TestAlarm)
+
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :clear
     }
 
     refute_receive _
@@ -83,18 +105,16 @@ defmodule AlarmistTest do
 
     :alarm_handler.set_alarm({AlarmId2, []})
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :set
     }
 
     :alarm_handler.clear_alarm(AlarmId2)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm,
+      state: :clear
     }
 
     :alarm_handler.clear_alarm(AlarmId1)
@@ -117,10 +137,9 @@ defmodule AlarmistTest do
 
     Alarmist.add_synthetic_alarm(MyAlarm6)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [MyAlarm6, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: MyAlarm6,
+      state: :set
     }
 
     Alarmist.remove_synthetic_alarm(MyAlarm6)
@@ -140,18 +159,16 @@ defmodule AlarmistTest do
 
     :alarm_handler.set_alarm({AlarmId10, []})
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [MyAlarm7, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: MyAlarm7,
+      state: :set
     }
 
     Alarmist.remove_synthetic_alarm(MyAlarm7)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [MyAlarm7, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: MyAlarm7,
+      state: :clear
     }
   end
 
@@ -170,34 +187,30 @@ defmodule AlarmistTest do
     Alarmist.add_synthetic_alarm(HoldAlarm)
     :alarm_handler.set_alarm({AlarmId1, []})
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [HoldAlarm, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: HoldAlarm,
+      state: :set
     }
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [AlarmId1, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: AlarmId1,
+      state: :set
     }
 
     :alarm_handler.clear_alarm(AlarmId1)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [AlarmId1, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: AlarmId1,
+      state: :clear
     }
 
     refute_receive _
 
     Process.sleep(250)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [HoldAlarm, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: HoldAlarm,
+      state: :clear
     }
 
     Alarmist.remove_synthetic_alarm(MyAlarms2.HoldAlarm)
@@ -222,17 +235,15 @@ defmodule AlarmistTest do
 
     :alarm_handler.set_alarm({AlarmId1, 3})
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [IntensityAlarm, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: IntensityAlarm,
+      state: :set
     }
 
     # It will go away in 250 ms
-    assert_receive %PropertyTable.Event{
-                     table: Alarmist,
-                     property: [IntensityAlarm, :status],
-                     value: :clear
+    assert_receive %Alarmist.Event{
+                     alarm_id: IntensityAlarm,
+                     state: :clear
                    },
                    500
 
@@ -255,20 +266,18 @@ defmodule AlarmistTest do
     # Test the transient case
     :alarm_handler.set_alarm({AlarmId2, []})
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [AlarmId2, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: AlarmId2,
+      state: :set
     }
 
     refute_received _
 
     :alarm_handler.clear_alarm(AlarmId2)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [AlarmId2, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: AlarmId2,
+      state: :clear
     }
 
     refute_receive _
@@ -276,34 +285,30 @@ defmodule AlarmistTest do
     # Test the long alarm case
     :alarm_handler.set_alarm({AlarmId2, []})
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [AlarmId2, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: AlarmId2,
+      state: :set
     }
 
     refute_receive _
 
     Process.sleep(100)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [DebounceAlarm, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: DebounceAlarm,
+      state: :set
     }
 
     :alarm_handler.clear_alarm(AlarmId2)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [AlarmId2, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: DebounceAlarm,
+      state: :clear
     }
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [DebounceAlarm, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: AlarmId2,
+      state: :clear
     }
 
     Alarmist.remove_synthetic_alarm(DebounceAlarm)
@@ -321,19 +326,17 @@ defmodule AlarmistTest do
     Alarmist.subscribe(TestAlarm2)
     Alarmist.add_synthetic_alarm(TestAlarm2)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm2, :status],
-      value: :set
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm2,
+      state: :set
     }
 
     :alarm_handler.set_alarm(Id2)
     :alarm_handler.set_alarm(Id3)
 
-    assert_receive %PropertyTable.Event{
-      table: Alarmist,
-      property: [TestAlarm2, :status],
-      value: :clear
+    assert_receive %Alarmist.Event{
+      alarm_id: TestAlarm2,
+      state: :clear
     }
 
     refute_receive _

@@ -48,12 +48,11 @@ defmodule Alarmist do
   Events will be delivered to the calling process as:
 
   ```elixir
-  %PropertyTable.Event{
-    table: Alarmist,
-    property: [TheAlarmId, :status],
-    value: :set,
+  %Alarmist.Event{
+    alarm_id: TheAlarmId,
+    state: :set,
     timestamp: -576460718306150542,
-    previous_value: nil,
+    previous_state: nil,
     previous_timestamp: nil
   }
   ```
