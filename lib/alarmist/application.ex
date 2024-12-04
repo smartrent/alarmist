@@ -8,7 +8,10 @@ defmodule Alarmist.Application do
     # is no stopping the Alarmist app cleanly once `Alarmist.Handler` has been
     # registered.
     children = [
-      {PropertyTable, name: Alarmist, matcher: Alarmist.Matcher},
+      {PropertyTable,
+       name: Alarmist,
+       matcher: Alarmist.Matcher,
+       event_transformer: &Alarmist.Event.from_property_table/1},
       {Task, &install_handler/0}
     ]
 
