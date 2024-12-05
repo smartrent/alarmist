@@ -256,23 +256,21 @@ Finally, we can exercise setting and clearing the alarm:
 iex> Demo.wifi_flap
 :ok
 iex> flush
-%PropertyTable.Event{
-  table: Alarmist,
-  property: [Demo.WiFiUnstable, :status],
-  value: :set,
+%Alarmist.Event{
+  alarm_id: Demo.WiFiUnstable,
+  state: :set,
   timestamp: -576460718306150542,
-  previous_value: nil,
+  previous_state: nil,
   previous_timestamp: nil
 }
 :ok
 # Wait ~60 seconds
 iex> flush
-%PropertyTable.Event{
-  table: Alarmist,
-  property: [Demo.WiFiUnstable, :status],
-  value: :clear,
+%Alarmist.Event{
+  alarm_id: Demo.WiFiUnstable,
+  state: :clear,
   timestamp: -576460658305612233,
-  previous_value: :set,
+  previous_state: :set,
   previous_timestamp: -576460718306150542
 }
 ```
