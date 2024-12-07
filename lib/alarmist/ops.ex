@@ -14,8 +14,8 @@ defmodule Alarmist.Ops do
   """
   @spec copy(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def copy(engine, [output, input]) do
-    {engine, value} = Engine.cache_get(engine, input)
-    Engine.cache_put(engine, output, value, nil)
+    {engine, {state, description}} = Engine.cache_get(engine, input)
+    Engine.cache_put(engine, output, state, description)
   end
 
   @doc """
@@ -26,10 +26,10 @@ defmodule Alarmist.Ops do
   """
   @spec logical_not(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_not(engine, [output, input]) do
-    {engine, value} = Engine.cache_get(engine, input)
+    {engine, {state, _description}} = Engine.cache_get(engine, input)
 
-    not_value = if value == :set, do: :clear, else: :set
-    Engine.cache_put(engine, output, not_value, nil)
+    new_state = if state == :clear, do: :set, else: :clear
+    Engine.cache_put(engine, output, new_state, nil)
   end
 
   @doc """
@@ -51,12 +51,11 @@ defmodule Alarmist.Ops do
   end
 
   defp do_logical_and(engine, [input | rest]) do
-    {engine, value} = Engine.cache_get(engine, input)
+    {engine, {state, _}} = Engine.cache_get(engine, input)
 
-    if value == :set do
-      do_logical_and(engine, rest)
-    else
-      {engine, :clear}
+    case state do
+      :set -> do_logical_and(engine, rest)
+      :clear -> {engine, :clear}
     end
   end
 
@@ -80,9 +79,9 @@ defmodule Alarmist.Ops do
   end
 
   defp do_logical_or(engine, [input | rest]) do
-    {engine, value} = Engine.cache_get(engine, input)
+    {engine, {state, _}} = Engine.cache_get(engine, input)
 
-    if value == :clear do
+    if state == :clear do
       do_logical_or(engine, rest)
     else
       {engine, :set}
@@ -112,12 +111,12 @@ defmodule Alarmist.Ops do
     {engine, value} = Engine.cache_get(engine, input)
 
     case value do
-      :clear ->
+      {:clear, _} ->
         engine
         |> Engine.cancel_timer(output)
         |> Engine.cache_put(output, :clear, nil)
 
-      :set ->
+      {:set, _} ->
         Engine.start_timer(engine, output, timeout, :set)
     end
   end
@@ -140,13 +139,13 @@ defmodule Alarmist.Ops do
     {engine, value} = Engine.cache_get(engine, input)
 
     case value do
-      :clear ->
+      {:clear, _} ->
         # Do nothing. This alarm is cleared on the timer.
         engine
 
-      :set ->
+      {:set, description} ->
         engine
-        |> Engine.cache_put(output, :set, nil)
+        |> Engine.cache_put(output, :set, description)
         |> Engine.start_timer(output, timeout, :clear)
     end
   end
@@ -172,10 +171,10 @@ defmodule Alarmist.Ops do
     {engine, value} = Engine.cache_get(engine, input)
 
     case value do
-      :clear ->
+      {:clear, _} ->
         engine
 
-      :set ->
+      {:set, _} ->
         timestamps = Engine.get_state(engine, output, [])
         now = System.monotonic_time(:millisecond)
         too_old = now - duration

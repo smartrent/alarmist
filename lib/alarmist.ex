@@ -60,7 +60,7 @@ defmodule Alarmist do
   """
   @spec subscribe(alarm_id()) :: :ok
   def subscribe(alarm_id) when is_atom(alarm_id) do
-    PropertyTable.subscribe(Alarmist, [alarm_id, :status])
+    PropertyTable.subscribe(Alarmist, [alarm_id])
   end
 
   @doc """
@@ -68,7 +68,7 @@ defmodule Alarmist do
   """
   @spec unsubscribe(alarm_id()) :: :ok
   def unsubscribe(alarm_id) when is_atom(alarm_id) do
-    PropertyTable.unsubscribe(Alarmist, [alarm_id, :status])
+    PropertyTable.unsubscribe(Alarmist, [alarm_id])
   end
 
   @doc """
@@ -76,9 +76,11 @@ defmodule Alarmist do
   """
   @spec current_alarms() :: [alarm_id()]
   def current_alarms() do
-    PropertyTable.match(Alarmist, [:_, :status])
-    |> Enum.filter(fn {_, status} -> status == :set end)
-    |> Enum.map(fn {[alarm_id, _], _} -> alarm_id end)
+    PropertyTable.get_all(Alarmist)
+    |> Enum.flat_map(fn
+      {[alarm_id], {:set, _}} -> [alarm_id]
+      _ -> []
+    end)
   end
 
   @doc """

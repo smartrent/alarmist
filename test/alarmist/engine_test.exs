@@ -13,10 +13,8 @@ defmodule Alarmist.EngineTest do
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
       assert side_effects == [
-               {:set, :my_alarm_id},
-               {:set_description, :my_alarm_id, "description"},
-               {:set, :my_alarm_id2},
-               {:set_description, :my_alarm_id2, "description2"}
+               {:set, :my_alarm_id, "description"},
+               {:set, :my_alarm_id2, "description2"}
              ]
     end
 
@@ -28,13 +26,10 @@ defmodule Alarmist.EngineTest do
 
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
-      assert side_effects == [
-               {:set_description, :my_alarm_id, nil},
-               {:set_description, :my_alarm_id2, nil}
-             ]
+      assert side_effects == []
     end
 
-    test "redundant clear alarms" do
+    test "repeated clear alarms" do
       engine =
         Engine.init(&always_clear_lookup_fun/1)
         |> Engine.set_alarm(:my_alarm_id, "description")
@@ -44,8 +39,8 @@ defmodule Alarmist.EngineTest do
 
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
-      # description is still cleared "just in case"
-      assert side_effects == [{:set_description, :my_alarm_id, nil}]
+      # transient alarm doesn't propagate
+      assert side_effects == [{:clear, :my_alarm_id, nil}]
     end
 
     test "redundant set alarms" do
@@ -57,11 +52,42 @@ defmodule Alarmist.EngineTest do
 
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
-      # description is still updated
-      assert side_effects == [{:set_description, :my_alarm_id, "description2"}]
+      # only run final set
+      assert side_effects == [{:set, :my_alarm_id, "description2"}]
     end
   end
 
-  defp always_clear_lookup_fun(_alarm_id), do: :clear
-  defp always_set_lookup_fun(_alarm_id), do: :set
+  describe "timers" do
+    test "starting timers" do
+      engine =
+        Engine.init(&always_set_lookup_fun/1)
+        |> Engine.start_timer(:my_alarm_id, 100, :set)
+        |> Engine.start_timer(:my_alarm_id2, 200, :set)
+
+      {_engine, side_effects} = Engine.commit_side_effects(engine)
+
+      assert [
+               {:start_timer, :my_alarm_id, 100, :set, _timer_ref},
+               {:start_timer, :my_alarm_id2, 200, :set, _timer_ref2}
+             ] = side_effects
+    end
+
+    test "cancelled timers" do
+      engine =
+        Engine.init(&always_set_lookup_fun/1)
+        |> Engine.start_timer(:my_alarm_id, 100, :set)
+        |> Engine.start_timer(:my_alarm_id2, 200, :set)
+        |> Engine.cancel_timer(:my_alarm_id)
+
+      {_engine, side_effects} = Engine.commit_side_effects(engine)
+
+      assert [
+               {:start_timer, :my_alarm_id2, 200, :set, _timer_ref2},
+               {:cancel_timer, :my_alarm_id}
+             ] = side_effects
+    end
+  end
+
+  defp always_clear_lookup_fun(_alarm_id), do: {:clear, nil}
+  defp always_set_lookup_fun(_alarm_id), do: {:set, []}
 end
