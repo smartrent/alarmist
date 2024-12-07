@@ -19,7 +19,7 @@ defmodule AlarmistTest do
                      state: :set,
                      previous_state: previous_state
                    }
-                   when previous_state in [nil, :clear]
+                   when previous_state in [:unknown, :clear]
 
     assert {TestAlarm, nil} in Alarmist.get_alarms()
     assert TestAlarm in Alarmist.get_alarm_ids()
@@ -50,7 +50,7 @@ defmodule AlarmistTest do
                      description: [],
                      previous_state: previous_state
                    }
-                   when previous_state in [nil, :clear]
+                   when previous_state in [:unknown, :clear]
 
     :alarm_handler.clear_alarm(TestAlarm)
 
@@ -76,7 +76,7 @@ defmodule AlarmistTest do
                      description: :test_description,
                      previous_state: previous_state
                    }
-                   when previous_state in [nil, :clear]
+                   when previous_state in [:unknown, :clear]
 
     # Need to pause for description write side effect
     Process.sleep(100)

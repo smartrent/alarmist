@@ -6,7 +6,7 @@ defmodule Alarmist.Event do
   * `:state` - `:set` or `:clear`
   * `:description` - alarm description or `nil` when the alarm has been cleared
   * `:timestamp` - the timestamp (`System.monotonic_time/0`) when the changed happened
-  * `:previous_state` - the previous value (`nil` if no previous information)
+  * `:previous_state` - the previous value (`:unknown` if no previous information)
   * `:previous_timestamp` - the timestamp when the property changed to
     `:previous_state`. Use this to calculate how long the property was the
     previous state.
@@ -17,7 +17,7 @@ defmodule Alarmist.Event do
           id: Alarmist.alarm_id(),
           state: Alarmist.alarm_state(),
           description: Alarmist.alarm_description(),
-          previous_state: Alarmist.alarm_state() | nil,
+          previous_state: Alarmist.alarm_state() | :unknown,
           timestamp: integer(),
           previous_timestamp: integer()
         }
@@ -39,5 +39,5 @@ defmodule Alarmist.Event do
   end
 
   defp property_to_info({state, description}), do: {state, description}
-  defp property_to_info(nil), do: {nil, nil}
+  defp property_to_info(nil), do: {:unknown, nil}
 end

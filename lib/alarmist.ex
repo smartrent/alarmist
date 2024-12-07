@@ -62,7 +62,7 @@ defmodule Alarmist do
     state: :set,
     description: nil,
     timestamp: -576460712978320952,
-    previous_state: nil,
+    previous_state: :unknown,
     previous_timestamp: -576460751417398083
   }
   ```
