@@ -24,11 +24,17 @@ defmodule Alarmist.Event do
 
   @doc false
   @spec from_property_table(PropertyTable.Event.t()) :: t()
-  def from_property_table(%PropertyTable.Event{property: [alarm_id, :status]} = event) do
+  def from_property_table(%PropertyTable.Event{property: [alarm_id]} = event) do
+    {state, data} =
+      case event.value do
+        :clear -> {:clear, nil}
+        {:set, data} -> {:set, data}
+      end
+
     %__MODULE__{
       alarm_id: alarm_id,
-      state: event.value,
-      data: nil,
+      state: state,
+      data: data,
       timestamp: event.timestamp,
       previous_state: event.previous_value,
       previous_timestamp: event.previous_timestamp

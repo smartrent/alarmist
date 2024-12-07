@@ -4,9 +4,11 @@ defmodule Alarmist.Engine do
   """
 
   @type action() ::
-          {:set, Alarmist.alarm_id()}
+          {:set, Alarmist.alarm_id(), any()}
           | {:clear, Alarmist.alarm_id()}
-          | {:set_description, Alarmist.alarm_id(), any()}
+          | {:start_timer, Alarmist.alarm_id(), pos_integer(), Alarmist.alarm_state(),
+             reference()}
+          | {:cancel_timer, reference()}
 
   @type alarm_lookup_fun() :: (Alarmist.alarm_id() -> Alarmist.alarm_state())
 
@@ -37,7 +39,7 @@ defmodule Alarmist.Engine do
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
           timers: map(),
-          actions_r: list(),
+          actions_r: [action()],
           states: map(),
           lookup_fun: alarm_lookup_fun()
         }
@@ -87,63 +89,34 @@ defmodule Alarmist.Engine do
 
     actions =
       engine.actions_r
-      |> remove_duplicate_descriptions()
-      |> remove_redundant_alarms()
-      |> Enum.reverse()
+      |> summarize_r()
 
     new_engine = %{engine | actions_r: [], cache: %{}}
     {new_engine, actions}
   end
 
-  defp remove_duplicate_descriptions(actions_r) do
-    remove_duplicate_descriptions(actions_r, %{}, [])
+  defp summarize_r(actions_r) do
+    summarize_r(actions_r, %{}, [])
   end
 
-  defp remove_duplicate_descriptions([{:set_description, alarm_id, _} = action | rest], seen, acc) do
-    if Map.get(seen, alarm_id) do
-      remove_duplicate_descriptions(rest, seen, acc)
+  defp summarize_r([action | rest], seen, acc) do
+    token = to_token(action)
+
+    if Map.get(seen, token) do
+      summarize_r(rest, seen, acc)
     else
-      remove_duplicate_descriptions(rest, Map.put(seen, alarm_id, true), [action | acc])
+      summarize_r(rest, Map.put(seen, token, true), [action | acc])
     end
   end
 
-  defp remove_duplicate_descriptions([action | rest], seen, acc) do
-    remove_duplicate_descriptions(rest, seen, [action | acc])
+  defp summarize_r([], _seen, acc) do
+    acc
   end
 
-  defp remove_duplicate_descriptions([], _seen, acc) do
-    Enum.reverse(acc)
-  end
-
-  defp remove_redundant_alarms(actions_r) do
-    remove_redundant_alarms(actions_r, %{}, [])
-  end
-
-  defp remove_redundant_alarms([{op, alarm_id} = action | rest], seen, acc)
-       when op in [:set, :clear] do
-    case Map.fetch(seen, alarm_id) do
-      {:ok, {last, _}} -> remove_redundant_alarms(rest, Map.put(seen, alarm_id, {last, op}), acc)
-      :error -> remove_redundant_alarms(rest, Map.put(seen, alarm_id, {op, op}), [action | acc])
-    end
-  end
-
-  defp remove_redundant_alarms([action | rest], seen, acc) do
-    remove_redundant_alarms(rest, seen, [action | acc])
-  end
-
-  defp remove_redundant_alarms([], seen, acc) do
-    # All of the easily redundant set/clears have been removed. Now, for each alarm_id,
-    # remove the set/clear if it is inconsequential. E.g., a set...clear or a clear...set.
-    # In both cases, the final value doesn't change.
-    dropped_alarm_ids =
-      for {alarm_id, {last_state, first_state}} <- seen, last_state != first_state, do: alarm_id
-
-    acc |> Enum.reverse() |> Enum.reject(&reject_alarm_action(&1, dropped_alarm_ids))
-  end
-
-  defp reject_alarm_action({:set, alarm_id}, dropped_ids), do: alarm_id in dropped_ids
-  defp reject_alarm_action({:clear, alarm_id}, dropped_ids), do: alarm_id in dropped_ids
-  defp reject_alarm_action(_, _), do: false
+  defp to_token({:set, alarm_id, _}), do: {:state, alarm_id}
+  defp to_token({:clear, alarm_id}), do: {:state, alarm_id}
+  defp to_token({:start_timer, alarm_id, _timeout, _value, _timer_id}), do: {:timer, alarm_id}
+  defp to_token({:cancel_timer, alarm_id}), do: {:timer, alarm_id}
 
   defp run_changed(engine) do
     changed_alarm_ids = engine.changed_alarm_ids
@@ -243,8 +216,11 @@ defmodule Alarmist.Engine do
   @spec cache_get(t(), Alarmist.alarm_id()) :: {t(), Alarmist.alarm_state()}
   def cache_get(engine, alarm_id) do
     case Map.fetch(engine.cache, alarm_id) do
-      {:ok, result} ->
-        {engine, result}
+      {:ok, {:set, description}} ->
+        {engine, {:set, description}}
+
+      {:ok, :clear} ->
+        {engine, :clear}
 
       :error ->
         value = engine.lookup_fun.(alarm_id)
@@ -259,24 +235,36 @@ defmodule Alarmist.Engine do
   IMPORTANT: Rules are evaluated on the next call to `run/2` if there was a change.
   """
   @spec cache_put(t(), Alarmist.alarm_id(), Alarmist.alarm_state(), any()) :: t()
-  def cache_put(engine, alarm_id, alarm_state, description) do
+  def cache_put(engine, alarm_id, alarm_state, description)
+      when is_atom(alarm_id) and alarm_state in [:set, :clear] and not is_tuple(description) do
     {engine, current_state} = cache_get(engine, alarm_id)
 
-    if current_state == alarm_state do
-      # No change
-      new_actions_r = [{:set_description, alarm_id, description} | engine.actions_r]
-      %{engine | actions_r: new_actions_r}
-    else
-      # Changed
-      new_cache = Map.put(engine.cache, alarm_id, alarm_state)
-      new_changed = [alarm_id | engine.changed_alarm_ids]
+    case {current_state, alarm_state} do
+      {:clear, :set} ->
+        # Set
+        new_cache = Map.put(engine.cache, alarm_id, {:set, description})
+        new_changed = [alarm_id | engine.changed_alarm_ids]
 
-      new_actions_r = [
-        {:set_description, alarm_id, description},
-        {alarm_state, alarm_id} | engine.actions_r
-      ]
+        new_actions_r = [{:set, alarm_id, description} | engine.actions_r]
 
-      %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
+        %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
+
+      {{:set, _}, :clear} ->
+        # Cleared
+        new_cache = Map.put(engine.cache, alarm_id, :clear)
+        new_changed = [alarm_id | engine.changed_alarm_ids]
+
+        new_actions_r = [{:clear, alarm_id} | engine.actions_r]
+
+        %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
+
+      {{:set, _}, :set} ->
+        new_actions_r = [{:set, alarm_id, description} | engine.actions_r]
+        %{engine | actions_r: new_actions_r}
+
+      {:clear, :clear} ->
+        # Ignore redundant clear
+        engine
     end
   end
 

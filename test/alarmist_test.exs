@@ -60,13 +60,14 @@ defmodule AlarmistTest do
 
     assert_receive %Alarmist.Event{
       alarm_id: TestAlarm,
-      state: :set
+      state: :set,
+      data: [:test_description]
     }
 
     # Need to pause for description write side effect
     Process.sleep(100)
 
-    assert {AlarmistTest.TestAlarm, [:test_description]} in Alarmist.current_alarms()
+    assert TestAlarm in Alarmist.current_alarms()
 
     :alarm_handler.clear_alarm(TestAlarm)
 

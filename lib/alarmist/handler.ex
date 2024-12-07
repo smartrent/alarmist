@@ -59,7 +59,10 @@ defmodule Alarmist.Handler do
   end
 
   defp lookup(alarm_id) do
-    PropertyTable.get(Alarmist, [alarm_id, :status], :clear)
+    case PropertyTable.get(Alarmist, [alarm_id], :clear) do
+      :clear -> :clear
+      {:set, description} -> {:set, description}
+    end
   end
 
   @doc """
@@ -134,16 +137,12 @@ defmodule Alarmist.Handler do
   #   # of an inconsistent view of the table.
   # end
 
-  defp run_side_effect({:set, alarm_id}) do
-    PropertyTable.put(Alarmist, [alarm_id, :status], :set)
+  defp run_side_effect({:set, alarm_id, description}) do
+    PropertyTable.put(Alarmist, [alarm_id], {:set, description})
   end
 
   defp run_side_effect({:clear, alarm_id}) do
-    PropertyTable.put(Alarmist, [alarm_id, :status], :clear)
-  end
-
-  defp run_side_effect({:set_description, alarm_id, description}) do
-    PropertyTable.put(Alarmist, [alarm_id, :description], description)
+    PropertyTable.put(Alarmist, [alarm_id], :clear)
   end
 
   defp run_side_effect({:start_timer, alarm_id, timeout, what, params}) do

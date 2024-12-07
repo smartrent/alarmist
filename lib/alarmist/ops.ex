@@ -14,8 +14,10 @@ defmodule Alarmist.Ops do
   """
   @spec copy(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def copy(engine, [output, input]) do
-    {engine, value} = Engine.cache_get(engine, input)
-    Engine.cache_put(engine, output, value, [])
+    case Engine.cache_get(engine, input) do
+      {engine, {:set, description}} -> Engine.cache_put(engine, output, :set, description)
+      {engine, :clear} -> Engine.cache_put(engine, output, :clear, [])
+    end
   end
 
   @doc """
@@ -26,10 +28,10 @@ defmodule Alarmist.Ops do
   """
   @spec logical_not(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_not(engine, [output, input]) do
-    {engine, value} = Engine.cache_get(engine, input)
-
-    not_value = if value == :set, do: :clear, else: :set
-    Engine.cache_put(engine, output, not_value, [])
+    case Engine.cache_get(engine, input) do
+      {engine, :clear} -> Engine.cache_put(engine, output, :set, [])
+      {engine, {:set, _description}} -> Engine.cache_put(engine, output, :clear, nil)
+    end
   end
 
   @doc """
@@ -53,10 +55,9 @@ defmodule Alarmist.Ops do
   defp do_logical_and(engine, [input | rest]) do
     {engine, value} = Engine.cache_get(engine, input)
 
-    if value == :set do
-      do_logical_and(engine, rest)
-    else
-      {engine, :clear}
+    case value do
+      {:set, _} -> do_logical_and(engine, rest)
+      :clear -> {engine, :clear}
     end
   end
 
@@ -117,7 +118,7 @@ defmodule Alarmist.Ops do
         |> Engine.cancel_timer(output)
         |> Engine.cache_put(output, :clear, [])
 
-      :set ->
+      {:set, _} ->
         Engine.start_timer(engine, output, timeout, :set)
     end
   end
@@ -144,9 +145,9 @@ defmodule Alarmist.Ops do
         # Do nothing. This alarm is cleared on the timer.
         engine
 
-      :set ->
+      {:set, description} ->
         engine
-        |> Engine.cache_put(output, :set, [])
+        |> Engine.cache_put(output, :set, description)
         |> Engine.start_timer(output, timeout, :clear)
     end
   end
@@ -175,7 +176,7 @@ defmodule Alarmist.Ops do
       :clear ->
         engine
 
-      :set ->
+      {:set, _} ->
         timestamps = Engine.get_state(engine, output, [])
         now = System.monotonic_time(:millisecond)
         too_old = now - duration
