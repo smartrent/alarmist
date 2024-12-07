@@ -15,9 +15,11 @@ defmodule AlarmistTest do
     :alarm_handler.set_alarm({TestAlarm, []})
 
     assert_receive %Alarmist.Event{
-      alarm_id: TestAlarm,
-      state: :set
-    }
+                     alarm_id: TestAlarm,
+                     state: :set,
+                     previous_state: previous_state
+                   }
+                   when previous_state in [:unknown, :clear]
 
     assert TestAlarm in Alarmist.current_alarms()
 
@@ -25,7 +27,8 @@ defmodule AlarmistTest do
 
     assert_receive %Alarmist.Event{
       alarm_id: TestAlarm,
-      state: :clear
+      state: :clear,
+      previous_state: :set
     }
 
     refute_receive _
@@ -38,15 +41,20 @@ defmodule AlarmistTest do
     :alarm_handler.set_alarm(TestAlarm)
 
     assert_receive %Alarmist.Event{
-      alarm_id: TestAlarm,
-      state: :set
-    }
+                     alarm_id: TestAlarm,
+                     state: :set,
+                     data: [],
+                     previous_state: previous_state
+                   }
+                   when previous_state in [:unknown, :clear]
 
     :alarm_handler.clear_alarm(TestAlarm)
 
     assert_receive %Alarmist.Event{
       alarm_id: TestAlarm,
-      state: :clear
+      state: :clear,
+      data: nil,
+      previous_state: :set
     }
 
     refute_receive _
@@ -59,10 +67,12 @@ defmodule AlarmistTest do
     :alarm_handler.set_alarm({TestAlarm, [:test_description]})
 
     assert_receive %Alarmist.Event{
-      alarm_id: TestAlarm,
-      state: :set,
-      data: [:test_description]
-    }
+                     alarm_id: TestAlarm,
+                     state: :set,
+                     data: [:test_description],
+                     previous_state: previous_state
+                   }
+                   when previous_state in [:unknown, :clear]
 
     # Need to pause for description write side effect
     Process.sleep(100)
@@ -73,7 +83,9 @@ defmodule AlarmistTest do
 
     assert_receive %Alarmist.Event{
       alarm_id: TestAlarm,
-      state: :clear
+      state: :clear,
+      data: nil,
+      previous_state: :set
     }
 
     refute_receive _
@@ -190,19 +202,23 @@ defmodule AlarmistTest do
 
     assert_receive %Alarmist.Event{
       alarm_id: HoldAlarm,
-      state: :set
+      state: :set,
+      data: []
     }
 
     assert_receive %Alarmist.Event{
       alarm_id: AlarmId1,
-      state: :set
+      state: :set,
+      data: []
     }
 
     :alarm_handler.clear_alarm(AlarmId1)
 
     assert_receive %Alarmist.Event{
       alarm_id: AlarmId1,
-      state: :clear
+      state: :clear,
+      data: nil,
+      previous_state: :set
     }
 
     refute_receive _
@@ -211,7 +227,9 @@ defmodule AlarmistTest do
 
     assert_receive %Alarmist.Event{
       alarm_id: HoldAlarm,
-      state: :clear
+      state: :clear,
+      data: nil,
+      previous_state: :set
     }
 
     Alarmist.remove_synthetic_alarm(MyAlarms2.HoldAlarm)
