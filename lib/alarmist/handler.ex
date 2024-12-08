@@ -138,7 +138,7 @@ defmodule Alarmist.Handler do
     PropertyTable.put(Alarmist, [alarm_id], {:set, description})
   end
 
-  defp run_side_effect({:clear, alarm_id}) do
+  defp run_side_effect({:clear, alarm_id, _}) do
     PropertyTable.put(Alarmist, [alarm_id], {:clear, nil})
   end
 

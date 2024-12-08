@@ -40,7 +40,7 @@ defmodule Alarmist.EngineTest do
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
       # transient alarm doesn't propagate
-      assert side_effects == [{:clear, :my_alarm_id}]
+      assert side_effects == [{:clear, :my_alarm_id, nil}]
     end
 
     test "redundant set alarms" do

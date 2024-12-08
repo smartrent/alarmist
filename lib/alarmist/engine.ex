@@ -114,7 +114,7 @@ defmodule Alarmist.Engine do
   end
 
   defp to_token({:set, alarm_id, _}), do: {:state, alarm_id}
-  defp to_token({:clear, alarm_id}), do: {:state, alarm_id}
+  defp to_token({:clear, alarm_id, _}), do: {:state, alarm_id}
   defp to_token({:start_timer, alarm_id, _timeout, _value, _timer_id}), do: {:timer, alarm_id}
   defp to_token({:cancel_timer, alarm_id}), do: {:timer, alarm_id}
 
@@ -216,8 +216,8 @@ defmodule Alarmist.Engine do
   @spec cache_get(t(), Alarmist.alarm_id()) :: {t(), {Alarmist.alarm_state(), any()}}
   def cache_get(engine, alarm_id) do
     case Map.fetch(engine.cache, alarm_id) do
-      {:ok, value} ->
-        {engine, value}
+      {:ok, result} ->
+        {engine, result}
 
       :error ->
         value = engine.lookup_fun.(alarm_id)
@@ -232,26 +232,15 @@ defmodule Alarmist.Engine do
   IMPORTANT: Rules are evaluated on the next call to `run/2` if there was a change.
   """
   @spec cache_put(t(), Alarmist.alarm_id(), Alarmist.alarm_state(), any()) :: t()
-  def cache_put(engine, alarm_id, alarm_state, description)
-      when is_atom(alarm_id) and alarm_state in [:set, :clear] and not is_tuple(description) do
+  def cache_put(engine, alarm_id, alarm_state, description) do
     {engine, current_state} = cache_get(engine, alarm_id)
 
     case {current_state, alarm_state} do
-      {{:clear, _}, :set} ->
-        # Set
-        new_cache = Map.put(engine.cache, alarm_id, {:set, description})
+      {{from_state, _}, to_state} when from_state != to_state ->
+        new_cache = Map.put(engine.cache, alarm_id, {to_state, description})
         new_changed = [alarm_id | engine.changed_alarm_ids]
 
-        new_actions_r = [{:set, alarm_id, description} | engine.actions_r]
-
-        %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
-
-      {{:set, _}, :clear} ->
-        # Cleared
-        new_cache = Map.put(engine.cache, alarm_id, {:clear, nil})
-        new_changed = [alarm_id | engine.changed_alarm_ids]
-
-        new_actions_r = [{:clear, alarm_id} | engine.actions_r]
+        new_actions_r = [{to_state, alarm_id, description} | engine.actions_r]
 
         %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
 
