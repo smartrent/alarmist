@@ -51,14 +51,12 @@ defmodule Alarmist do
   %Alarmist.Event{
     alarm_id: TheAlarmId,
     state: :set,
-    timestamp: -576460718306150542,
-    previous_state: nil,
-    previous_timestamp: nil
+    data: nil,
+    timestamp: -576460712978320952,
+    previous_state: :unknown,
+    previous_timestamp: -576460751417398083
   }
   ```
-
-  This will almost certainly change in the future to avoid exposing that the
-  PropertyTable library is used to manage subscriptions.
   """
   @spec subscribe(alarm_id()) :: :ok
   def subscribe(alarm_id) when is_atom(alarm_id) do

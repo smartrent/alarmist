@@ -259,9 +259,10 @@ iex> flush
 %Alarmist.Event{
   alarm_id: Demo.WiFiUnstable,
   state: :set,
-  timestamp: -576460718306150542,
-  previous_state: nil,
-  previous_timestamp: nil
+  data: nil,
+  timestamp: -576460712978320952,
+  previous_state: :unknown,
+  previous_timestamp: -576460751417398083
 }
 :ok
 # Wait ~60 seconds
@@ -269,14 +270,11 @@ iex> flush
 %Alarmist.Event{
   alarm_id: Demo.WiFiUnstable,
   state: :clear,
-  timestamp: -576460658305612233,
+  timestamp: -576460652977733801,
   previous_state: :set,
-  previous_timestamp: -576460718306150542
+  previous_timestamp: -576460712978320952
 }
 ```
-
-NOTE: The event format will likely change in the future to avoid exposing that
-Alarmist uses the PropertyTable library internally.
 
 ## License
 
