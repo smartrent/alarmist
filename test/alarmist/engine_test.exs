@@ -88,6 +88,6 @@ defmodule Alarmist.EngineTest do
     end
   end
 
-  defp always_clear_lookup_fun(_alarm_id), do: :clear
+  defp always_clear_lookup_fun(_alarm_id), do: {:clear, nil}
   defp always_set_lookup_fun(_alarm_id), do: {:set, []}
 end

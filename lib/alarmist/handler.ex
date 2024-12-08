@@ -59,10 +59,7 @@ defmodule Alarmist.Handler do
   end
 
   defp lookup(alarm_id) do
-    case PropertyTable.get(Alarmist, [alarm_id], :clear) do
-      :clear -> :clear
-      {:set, description} -> {:set, description}
-    end
+    PropertyTable.get(Alarmist, [alarm_id], {:clear, nil})
   end
 
   @doc """
@@ -142,7 +139,7 @@ defmodule Alarmist.Handler do
   end
 
   defp run_side_effect({:clear, alarm_id}) do
-    PropertyTable.put(Alarmist, [alarm_id], :clear)
+    PropertyTable.put(Alarmist, [alarm_id], {:clear, nil})
   end
 
   defp run_side_effect({:start_timer, alarm_id, timeout, what, params}) do

@@ -79,8 +79,10 @@ defmodule Alarmist do
   @spec current_alarms() :: [alarm_id()]
   def current_alarms() do
     PropertyTable.get_all(Alarmist)
-    |> Enum.reject(fn {_, status} -> status == :clear end)
-    |> Enum.map(fn {[alarm_id], {:set, _description}} -> alarm_id end)
+    |> Enum.flat_map(fn
+      {[alarm_id], {:set, _}} -> [alarm_id]
+      _ -> []
+    end)
   end
 
   @doc """

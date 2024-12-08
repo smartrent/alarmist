@@ -10,7 +10,7 @@ defmodule Alarmist.Engine do
              reference()}
           | {:cancel_timer, reference()}
 
-  @type alarm_lookup_fun() :: (Alarmist.alarm_id() -> Alarmist.alarm_state())
+  @type alarm_lookup_fun() :: (Alarmist.alarm_id() -> {Alarmist.alarm_state(), any()})
 
   defstruct [
     :rules,
@@ -213,14 +213,11 @@ defmodule Alarmist.Engine do
   end
 
   @doc false
-  @spec cache_get(t(), Alarmist.alarm_id()) :: {t(), Alarmist.alarm_state()}
+  @spec cache_get(t(), Alarmist.alarm_id()) :: {t(), {Alarmist.alarm_state(), any()}}
   def cache_get(engine, alarm_id) do
     case Map.fetch(engine.cache, alarm_id) do
-      {:ok, {:set, description}} ->
-        {engine, {:set, description}}
-
-      {:ok, :clear} ->
-        {engine, :clear}
+      {:ok, value} ->
+        {engine, value}
 
       :error ->
         value = engine.lookup_fun.(alarm_id)
@@ -240,7 +237,7 @@ defmodule Alarmist.Engine do
     {engine, current_state} = cache_get(engine, alarm_id)
 
     case {current_state, alarm_state} do
-      {:clear, :set} ->
+      {{:clear, _}, :set} ->
         # Set
         new_cache = Map.put(engine.cache, alarm_id, {:set, description})
         new_changed = [alarm_id | engine.changed_alarm_ids]
@@ -251,7 +248,7 @@ defmodule Alarmist.Engine do
 
       {{:set, _}, :clear} ->
         # Cleared
-        new_cache = Map.put(engine.cache, alarm_id, :clear)
+        new_cache = Map.put(engine.cache, alarm_id, {:clear, nil})
         new_changed = [alarm_id | engine.changed_alarm_ids]
 
         new_actions_r = [{:clear, alarm_id} | engine.actions_r]
@@ -262,7 +259,7 @@ defmodule Alarmist.Engine do
         new_actions_r = [{:set, alarm_id, description} | engine.actions_r]
         %{engine | actions_r: new_actions_r}
 
-      {:clear, :clear} ->
+      {{:clear, _}, :clear} ->
         # Ignore redundant clear
         engine
     end

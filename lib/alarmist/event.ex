@@ -38,7 +38,6 @@ defmodule Alarmist.Event do
     }
   end
 
-  defp property_to_info({:set, data}), do: {:set, data}
-  defp property_to_info(:clear), do: {:clear, nil}
+  defp property_to_info({state, data}), do: {state, data}
   defp property_to_info(nil), do: {:unknown, nil}
 end
