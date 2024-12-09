@@ -219,7 +219,7 @@ defmodule Demo do
   Helpers for setting and clearing alarms
   """
   def wifi_down() do
-    :alarm_handler.set_alarm({Demo.WiFiDown, []})
+    :alarm_handler.set_alarm({Demo.WiFiDown, nil})
   end
 
   def wifi_up() do

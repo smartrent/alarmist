@@ -12,7 +12,7 @@ defmodule AlarmistTest do
     Alarmist.subscribe(TestAlarm)
     refute_received _
 
-    :alarm_handler.set_alarm({TestAlarm, []})
+    :alarm_handler.set_alarm({TestAlarm, nil})
 
     assert_receive %Alarmist.Event{
       id: TestAlarm,
@@ -74,10 +74,10 @@ defmodule AlarmistTest do
     Alarmist.add_synthetic_alarm(TestAlarm)
     refute_received _
 
-    :alarm_handler.set_alarm({AlarmId1, []})
+    :alarm_handler.set_alarm({AlarmId1, nil})
     refute_received _
 
-    :alarm_handler.set_alarm({AlarmId2, []})
+    :alarm_handler.set_alarm({AlarmId2, nil})
 
     assert_receive %Alarmist.Event{
       id: TestAlarm,
@@ -106,7 +106,7 @@ defmodule AlarmistTest do
     end
 
     Alarmist.subscribe(MyAlarm6)
-    :alarm_handler.set_alarm({AlarmId10, []})
+    :alarm_handler.set_alarm({AlarmId10, nil})
     refute_received _
 
     Alarmist.add_synthetic_alarm(MyAlarm6)
@@ -131,7 +131,7 @@ defmodule AlarmistTest do
     Alarmist.subscribe(MyAlarm7)
     Alarmist.add_synthetic_alarm(MyAlarm7)
 
-    :alarm_handler.set_alarm({AlarmId10, []})
+    :alarm_handler.set_alarm({AlarmId10, nil})
 
     assert_receive %Alarmist.Event{
       id: MyAlarm7,
@@ -159,7 +159,7 @@ defmodule AlarmistTest do
     Alarmist.subscribe(HoldAlarm)
     Alarmist.subscribe(AlarmId1)
     Alarmist.add_synthetic_alarm(HoldAlarm)
-    :alarm_handler.set_alarm({AlarmId1, []})
+    :alarm_handler.set_alarm({AlarmId1, nil})
 
     assert_receive %Alarmist.Event{
       id: HoldAlarm,
@@ -238,7 +238,7 @@ defmodule AlarmistTest do
     Alarmist.add_synthetic_alarm(DebounceAlarm)
 
     # Test the transient case
-    :alarm_handler.set_alarm({AlarmId2, []})
+    :alarm_handler.set_alarm({AlarmId2, nil})
 
     assert_receive %Alarmist.Event{
       id: AlarmId2,
@@ -257,7 +257,7 @@ defmodule AlarmistTest do
     refute_receive _
 
     # Test the long alarm case
-    :alarm_handler.set_alarm({AlarmId2, []})
+    :alarm_handler.set_alarm({AlarmId2, nil})
 
     assert_receive %Alarmist.Event{
       id: AlarmId2,

@@ -15,7 +15,7 @@ defmodule Alarmist.Ops do
   @spec copy(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def copy(engine, [output, input]) do
     {engine, value} = Engine.cache_get(engine, input)
-    Engine.cache_put(engine, output, value, [])
+    Engine.cache_put(engine, output, value, nil)
   end
 
   @doc """
@@ -29,7 +29,7 @@ defmodule Alarmist.Ops do
     {engine, value} = Engine.cache_get(engine, input)
 
     not_value = if value == :set, do: :clear, else: :set
-    Engine.cache_put(engine, output, not_value, [])
+    Engine.cache_put(engine, output, not_value, nil)
   end
 
   @doc """
@@ -43,7 +43,7 @@ defmodule Alarmist.Ops do
   @spec logical_and(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_and(engine, [output | inputs]) do
     {engine, value} = do_logical_and(engine, inputs)
-    Engine.cache_put(engine, output, value, [])
+    Engine.cache_put(engine, output, value, nil)
   end
 
   defp do_logical_and(engine, []) do
@@ -115,7 +115,7 @@ defmodule Alarmist.Ops do
       :clear ->
         engine
         |> Engine.cancel_timer(output)
-        |> Engine.cache_put(output, :clear, [])
+        |> Engine.cache_put(output, :clear, nil)
 
       :set ->
         Engine.start_timer(engine, output, timeout, :set)
@@ -146,7 +146,7 @@ defmodule Alarmist.Ops do
 
       :set ->
         engine
-        |> Engine.cache_put(output, :set, [])
+        |> Engine.cache_put(output, :set, nil)
         |> Engine.start_timer(output, timeout, :clear)
     end
   end
@@ -185,7 +185,7 @@ defmodule Alarmist.Ops do
           good_at = duration - (now - Enum.at(new_timestamps, count - 1))
 
           engine
-          |> Engine.cache_put(output, :set, [])
+          |> Engine.cache_put(output, :set, nil)
           |> Engine.start_timer(output, good_at, :clear)
           |> Engine.set_state(output, new_timestamps)
         else
