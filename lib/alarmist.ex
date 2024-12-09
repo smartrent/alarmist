@@ -19,6 +19,15 @@ defmodule Alarmist do
   @type alarm_id() :: atom()
 
   @typedoc """
+  Alarm description
+
+  This is optional supplemental information about the alarm. It could contain
+  more information about why it was set. Don't use it to differentiate between
+  alarms. Use the alarm ID for that.
+  """
+  @type alarm_description() :: any()
+
+  @typedoc """
   Alarm information
 
   Calls to `:alarm_handler.set_alarm/1` pass an alarm identifier and
@@ -28,7 +37,7 @@ defmodule Alarmist do
   `:alarm_handler.set_alarm/1` doesn't enforce the use of 2-tuples. Alarmist
   normalizes non-2-tuple alarms so that they have empty descriptions.
   """
-  @type alarm() :: {alarm_id(), any()}
+  @type alarm() :: {alarm_id(), alarm_description()}
 
   @typedoc """
   Alarm state

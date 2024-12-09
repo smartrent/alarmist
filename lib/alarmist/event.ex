@@ -16,7 +16,7 @@ defmodule Alarmist.Event do
   @type t() :: %__MODULE__{
           id: Alarmist.alarm_id(),
           state: Alarmist.alarm_state(),
-          description: any(),
+          description: Alarmist.alarm_description(),
           previous_state: Alarmist.alarm_state() | nil,
           timestamp: integer(),
           previous_timestamp: integer()

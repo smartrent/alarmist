@@ -4,13 +4,14 @@ defmodule Alarmist.Engine do
   """
 
   @type action() ::
-          {:set, Alarmist.alarm_id(), any()}
+          {:set, Alarmist.alarm_id(), Alarmist.alarm_description()}
           | {:clear, Alarmist.alarm_id()}
           | {:start_timer, Alarmist.alarm_id(), pos_integer(), Alarmist.alarm_state(),
              reference()}
           | {:cancel_timer, reference()}
 
-  @type alarm_lookup_fun() :: (Alarmist.alarm_id() -> {Alarmist.alarm_state(), any()})
+  @type alarm_lookup_fun() :: (Alarmist.alarm_id() ->
+                                 {Alarmist.alarm_state(), Alarmist.alarm_description()})
 
   defstruct [
     :rules,
@@ -61,7 +62,7 @@ defmodule Alarmist.Engine do
   @doc """
   Report that an alarm_id has changed state
   """
-  @spec set_alarm(t(), Alarmist.alarm_id(), any()) :: t()
+  @spec set_alarm(t(), Alarmist.alarm_id(), Alarmist.alarm_description()) :: t()
   def set_alarm(engine, alarm_id, description) when is_atom(alarm_id) do
     engine
     |> cache_put(alarm_id, :set, description)
@@ -211,7 +212,8 @@ defmodule Alarmist.Engine do
   end
 
   @doc false
-  @spec cache_get(t(), Alarmist.alarm_id()) :: {t(), {Alarmist.alarm_state(), any()}}
+  @spec cache_get(t(), Alarmist.alarm_id()) ::
+          {t(), {Alarmist.alarm_state(), Alarmist.alarm_description()}}
   def cache_get(engine, alarm_id) do
     case Map.fetch(engine.cache, alarm_id) do
       {:ok, result} ->
@@ -229,7 +231,8 @@ defmodule Alarmist.Engine do
 
   IMPORTANT: Rules are evaluated on the next call to `run/2` if there was a change.
   """
-  @spec cache_put(t(), Alarmist.alarm_id(), Alarmist.alarm_state(), any()) :: t()
+  @spec cache_put(t(), Alarmist.alarm_id(), Alarmist.alarm_state(), Alarmist.alarm_description()) ::
+          t()
   def cache_put(engine, alarm_id, alarm_state, description) do
     {engine, current_state} = cache_get(engine, alarm_id)
 
