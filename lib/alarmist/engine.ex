@@ -7,6 +7,9 @@ defmodule Alarmist.Engine do
           {:set, Alarmist.alarm_id()}
           | {:clear, Alarmist.alarm_id()}
           | {:set_description, Alarmist.alarm_id(), any()}
+          | {:start_timer, Alarmist.alarm_id(), pos_integer(), Alarmist.alarm_state(),
+             reference()}
+          | {:cancel_timer, reference()}
 
   @type alarm_lookup_fun() :: (Alarmist.alarm_id() -> Alarmist.alarm_state())
 
@@ -37,7 +40,7 @@ defmodule Alarmist.Engine do
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
           timers: map(),
-          actions_r: list(),
+          actions_r: [action()],
           states: map(),
           lookup_fun: alarm_lookup_fun()
         }
