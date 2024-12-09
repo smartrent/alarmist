@@ -10,8 +10,7 @@ defmodule Alarmist do
   Alarm identifier
 
   Alarm identifiers are the unique identifiers of each alarm that can be
-  set or cleared. Alarms also contain data, but the data is informational
-  about the most recent call to `:alarm_handler.set_alarm/1`.
+  set or cleared.
 
   While SASL alarm identifiers can be anything, Alarmist imposes the restriction
   that they all be atoms. It is highly recommended to use module names to
@@ -22,8 +21,9 @@ defmodule Alarmist do
   @typedoc """
   Alarm information
 
-  Calls to `:alarm_handler.set_alarm/1` pass an alarm identifier and data as
-  a 2-tuple. Alarmist stores the data of the most recent call.
+  Calls to `:alarm_handler.set_alarm/1` pass an alarm identifier and
+  description as a 2-tuple. Alarmist stores the description of the most recent
+  call.
 
   `:alarm_handler.set_alarm/1` doesn't enforce the use of 2-tuples. Alarmist
   normalizes non-2-tuple alarms so that they have empty descriptions.
@@ -35,8 +35,8 @@ defmodule Alarmist do
 
   Alarms are in the `:set` state after a call to `:alarm_handler.set_alarm/1`
   and in the `:clear` state after a call to `:alarm_handler.clear_alarm/1`.
-  Redundant calls to `:alarm_handler.set_alarm/1` update the alarm data and
-  redundant calls to `:alarm_handler.clear_alarm/1` are ignored.
+  Redundant calls to `:alarm_handler.set_alarm/1` update the alarm description
+  and redundant calls to `:alarm_handler.clear_alarm/1` are ignored.
   """
   @type alarm_state() :: :set | :clear
 
