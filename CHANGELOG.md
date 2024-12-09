@@ -2,6 +2,31 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.0 - 2024-12-09
+
+This is a backwards incompatible update. The following changes are needed:
+
+1. Replace all calls to `Alarmist.current_alarms/0` with
+   `Alarmist.get_alarm_ids/0`. This is a hard deprecation.
+2. Update all message handling on Alarmist events to expect and use the
+   `Alarmist.Event.t()`. In most usage, this means matching on `:id` and
+   `:state` and it should simplify the handling functions.
+
+* Updates
+  * Simplify the API by completely abstracting away the internal implementation
+    with uses the PropertyTables library. This will allow for further internal
+    improvements without forcing breaking changes.
+  * Align the API for getting alarms with `:alarm_handler`. This added the
+    `Alarmist.get_alarms/0` function.
+  * Remove a race condition involving the use of alarm descriptions.
+    Descriptions are sent to subscribers with the alarm status change
+    notification now.
+  * Use one timestamp value for all alarms that were set at initialization time.
+    This removes the ambiguity of whether an alarm changed a few milliseconds
+    after Alarmist start up or was one of the original alarms.
+  * Report when alarms are in an `:unknown` state when no information is
+    available. This is useful for the `:previous_state` field in alarm events.
+
 ## v0.1.3 - 2024-09-26
 
 * Updates
