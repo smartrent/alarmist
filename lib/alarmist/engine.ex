@@ -61,8 +61,6 @@ defmodule Alarmist.Engine do
 
   @doc """
   Report that an alarm_id has changed state
-
-
   """
   @spec set_alarm(t(), Alarmist.alarm_id(), any()) :: t()
   def set_alarm(engine, alarm_id, description) when is_atom(alarm_id) do

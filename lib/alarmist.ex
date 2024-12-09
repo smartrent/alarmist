@@ -5,7 +5,7 @@ defmodule Alarmist do
   alias Alarmist.Compiler
   alias Alarmist.Handler
 
-  # SASL doesn't define types for these so create them here
+  # SASL doesn't export types for these so create them here
   @typedoc """
   Alarm identifier
 
@@ -26,7 +26,7 @@ defmodule Alarmist do
   a 2-tuple. Alarmist stores the data of the most recent call.
 
   `:alarm_handler.set_alarm/1` doesn't enforce the use of 2-tuples. Alarmist
-  normalizes alarms that don't have data to ones that have an empty list.
+  normalizes non-2-tuple alarms so that they have empty descriptions.
   """
   @type alarm() :: {alarm_id(), any()}
 
