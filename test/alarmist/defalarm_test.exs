@@ -146,4 +146,35 @@ defmodule Alarmist.DefAlarmTest do
 
     assert ModAttrTest.__get_alarm() == expected_result
   end
+
+  test "not specifying defalarm" do
+    code = """
+    defmodule NotSpecifiedTest do
+      use Alarmist.Definition
+    end
+    """
+
+    assert_raise CompileError, "nofile:1: One defalarm expected, but not found.", fn ->
+      Code.eval_string(code)
+    end
+  end
+
+  test "specifying defalarm more than once" do
+    code = """
+    defmodule DoubleTest do
+      use Alarmist.Definition
+
+      defalarm do
+        AlarmID1
+      end
+      defalarm do
+        AlarmID2
+      end
+    end
+    """
+
+    assert_raise CompileError,
+                 "nofile:7: Cannot define multiple alarms in a single module!",
+                 fn -> Code.eval_string(code) end
+  end
 end

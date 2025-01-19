@@ -57,16 +57,6 @@ defmodule Alarmist.Definition do
 
   defp process_node(item, caller), do: Macro.expand(item, caller)
 
-  @spec assert_not_defined(map(), number(), String.t()) :: no_return()
-  def assert_not_defined(alarm_attr, line, file) do
-    if alarm_attr != nil do
-      raise CompileError,
-        line: line,
-        file: file,
-        description: "Cannot define multiple alarms in a single module!"
-    end
-  end
-
   defmacro debounce(expression, time) do
     expr_expanded = expand_expression(expression, __CALLER__)
 
@@ -93,14 +83,9 @@ defmodule Alarmist.Definition do
 
   defmacro __using__(_options) do
     quote do
-      import Alarmist.Definition
-      Module.register_attribute(__MODULE__, :__alarmist_alarm, persist: true)
-      Module.put_attribute(__MODULE__, :__alarmist_alarm, nil)
-
-      @spec __get_alarm() :: map()
-      def __get_alarm() do
-        __MODULE__.__info__(:attributes)[:__alarmist_alarm]
-      end
+      @before_compile unquote(__MODULE__)
+      Module.register_attribute(__MODULE__, :alarmist_alarm, [])
+      import unquote(__MODULE__)
     end
   end
 
@@ -108,10 +93,31 @@ defmodule Alarmist.Definition do
     expr_expanded = expand_expression(block, __CALLER__)
 
     quote do
-      alarm_name = __MODULE__
-      compiled = Alarmist.Compiler.compile(alarm_name, unquote(expr_expanded))
-      assert_not_defined(@__alarmist_alarm, __ENV__.line, __ENV__.file)
-      @__alarmist_alarm compiled
+      if @alarmist_alarm do
+        raise CompileError,
+          file: __ENV__.file,
+          line: __ENV__.line,
+          description: "Cannot define multiple alarms in a single module!"
+      end
+
+      @alarmist_alarm Alarmist.Compiler.compile(__MODULE__, unquote(expr_expanded))
+    end
+  end
+
+  defmacro __before_compile__(env) do
+    alarm = Module.get_attribute(env.module, :alarmist_alarm)
+
+    if !alarm do
+      raise CompileError,
+        file: env.file,
+        line: env.line,
+        description: "One defalarm expected, but not found."
+    end
+
+    quote do
+      def __get_alarm() do
+        unquote(Macro.escape(alarm))
+      end
     end
   end
 end
