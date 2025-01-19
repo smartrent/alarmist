@@ -11,6 +11,18 @@ defmodule Alarmist.Ops do
   clears an alarm ID that's in its namespace, but another library wants to
   listen on changes to an alarm ID in its namespace, a copy rule can glue them
   together.
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Definition
+
+    defalarm do
+      OriginalAlarm
+    end
+  end
+  ```
   """
   @spec copy(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def copy(engine, [output, input]) do
@@ -23,6 +35,18 @@ defmodule Alarmist.Ops do
 
   This is useful for "proof-of-life" alarms where the presence of an alarm is a
   good thing.
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Definition
+
+    defalarm do
+      not OriginalAlarm
+    end
+  end
+  ```
   """
   @spec logical_not(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_not(engine, [output, input]) do
@@ -39,6 +63,19 @@ defmodule Alarmist.Ops do
   For example, if a device has more than one way of accomplishing a task, there
   could be a specific remediation when one way stops working. However, if every
   way is broken, the device could trigger a more significant remediation.
+
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Definition
+
+    defalarm do
+      Alarm1 and Alarm2
+    end
+  end
+  ```
   """
   @spec logical_and(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_and(engine, [output | inputs]) do
@@ -67,6 +104,19 @@ defmodule Alarmist.Ops do
   reboot. There are usually many disastrous alarms that when raised really have
   no great remediation other than reboot. This allows a handler to register for
   a combined alarm so that it's decoupled from the alarms that trigger it.
+
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Definition
+
+    defalarm do
+      Alarm1 or Alarm2
+    end
+  end
+  ```
   """
   @spec logical_or(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
   def logical_or(engine, [output | inputs]) do
@@ -105,6 +155,19 @@ defmodule Alarmist.Ops do
   has some retry logic in it already to reestablish the connection. In this
   case, it might be good to delay switching to an offline mode for a little bit
   in the hopes that the problem will naturally go away.
+
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Definition
+
+    defalarm do
+      debounce(Alarm1, 1_000)
+    end
+  end
+  ```
   """
   @spec debounce(Engine.t(), [Alarmist.alarm_id(), ...]) :: Engine.t()
   def debounce(engine, [output, input, timeout]) do
@@ -133,6 +196,19 @@ defmodule Alarmist.Ops do
   being set again. Managing the timeout period via alarms rather than
   programmatically lets you manually clear the alarm if you'd like that feature
   enabled again immediately like if you're debugging.
+
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Definition
+
+    defalarm do
+      hold(Alarm1, 1_000)
+    end
+  end
+  ```
   """
   @spec hold(Engine.t(), [Alarmist.alarm_id(), ...]) :: Engine.t()
   def hold(engine, [output, input, timeout]) do
@@ -164,6 +240,19 @@ defmodule Alarmist.Ops do
   the WiFi connection is preferred, but if it keeps going up and down, it may
   be desirable to raise an alarm. That alarm could disable WiFi for a while.
   Combine this with `hold/2` to manage the duration that WiFi is off.
+
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Definition
+
+    defalarm do
+      intensity(Alarm1, 3, 60_000)
+    end
+  end
+  ```
   """
   @spec intensity(Engine.t(), [Alarmist.alarm_id(), ...]) ::
           Engine.t()

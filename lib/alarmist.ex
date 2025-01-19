@@ -1,6 +1,12 @@
 defmodule Alarmist do
   @moduledoc """
-  Alarm manager
+  Alarm handler and more
+
+  Alarmist provides an `:alarm_handler` implementation that allows you to check
+  what alarms are currently active and subscribe to alarm status changes.
+
+  It also provides a DSL for defining alarms based on other alarms. See
+  `Alarmist.Definition`.
   """
   alias Alarmist.Compiler
   alias Alarmist.Handler

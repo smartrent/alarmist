@@ -1,8 +1,11 @@
 defmodule Alarmist.Engine do
   @moduledoc """
   Synthetic alarm processing engine
+
+  This module is intended for users extending the Alarmist DSL.
   """
 
+  @typedoc false
   @type action() ::
           {:set, Alarmist.alarm_id(), Alarmist.alarm_description()}
           | {:clear, Alarmist.alarm_id()}
@@ -10,6 +13,7 @@ defmodule Alarmist.Engine do
              reference()}
           | {:cancel_timer, reference()}
 
+  @typedoc false
   @type alarm_lookup_fun() :: (Alarmist.alarm_id() ->
                                  {Alarmist.alarm_state(), Alarmist.alarm_description()})
 

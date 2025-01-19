@@ -1,5 +1,21 @@
 defmodule Alarmist.Definition do
-  @moduledoc false
+  @moduledoc """
+  DSL for defining alarms
+
+  The general form of an alarm definition is:
+
+  ```elixir
+  defmodule MyAlarmModule do
+    use Alarmist.Definition
+
+    defalarm do
+      AlarmId1 and AlarmId2
+    end
+  end
+  ```
+
+  See `Alarmist.Ops` for what operations can be included in `defalarm` block.
+  """
 
   defp expand_expression(expr, caller) do
     {_item, acc} =

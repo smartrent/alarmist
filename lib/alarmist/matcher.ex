@@ -1,8 +1,7 @@
 defmodule Alarmist.Matcher do
-  @moduledoc """
-  Match logic using atom-based keys used in PropertyTable.
-  Basically it's `PropertyTable.Matcher.StringPath` but using atoms instead of strings.
-  """
+  @moduledoc false
+  # Match logic using atom-based keys used in PropertyTable.
+  # Basically it's `PropertyTable.Matcher.StringPath` but using atoms instead of strings.
 
   @behaviour PropertyTable.Matcher
 

@@ -1,15 +1,14 @@
 defmodule Alarmist.Compiler do
   @moduledoc """
-  Compile rule specifications
+  Compiles synthetic alarm definitions into a list of rules
   """
+
+  @typedoc false
   @type rule_spec() :: list()
   @type rule() :: {module(), atom(), list()}
 
   defstruct [:temp_counter, :result_alarm_id, :rules, :aliases]
 
-  @doc """
-
-  """
   @spec compile(Alarmist.alarm_id(), rule_spec()) :: [rule()]
   def compile(alarm_id, rule_spec) do
     state = %__MODULE__{temp_counter: 0, result_alarm_id: alarm_id, rules: [], aliases: %{}}
