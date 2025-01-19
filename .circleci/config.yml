@@ -37,6 +37,7 @@ jobs:
       - run: mix compile --warnings-as-errors
       - run: MIX_ENV=test mix compile --warnings-as-errors
       - run: mix test
+      - run: cd examples/wifi_demo && mix deps.get && mix test && mix docs
       - when:
           condition:
             matches: { <<: *latest, value: << parameters.tag >> }
