@@ -2,6 +2,16 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.1 - 2025-03-27
+
+* Updates
+  * Fix serious issue with incorrect clearing of timers that affects synthetic
+    alarms that use timers such as Debounce, Intensity, and Hold. Timeouts could
+    be missed. Thanks to @x4lldux for reporting the issue.
+  * Improve compile-time checks for `defalarm`
+  * Various documentation improvements and an example
+  * Update licensing and copyright for [REUSE compliance](https://reuse.software/)
+
 ## v0.2.0 - 2024-12-09
 
 This is a backwards incompatible update. The following changes are needed:
