@@ -279,68 +279,121 @@ defmodule AlarmistTest do
     Alarmist.remove_synthetic_alarm(MyAlarms3.IntensityAlarm)
   end
 
-  test "debounce rules" do
-    defmodule DebounceAlarm do
-      use Alarmist.Definition
+  describe "debounce tests" do
+    test "debounce rules" do
+      defmodule DebounceAlarm do
+        use Alarmist.Definition
 
-      defalarm do
-        debounce(AlarmId2, 100)
+        defalarm do
+          debounce(AlarmId2, 100)
+        end
       end
+
+      Alarmist.subscribe(DebounceAlarm)
+      Alarmist.subscribe(AlarmId2)
+      Alarmist.add_synthetic_alarm(DebounceAlarm)
+
+      # Test the transient case
+      :alarm_handler.set_alarm({AlarmId2, nil})
+
+      assert_receive %Alarmist.Event{
+        id: AlarmId2,
+        state: :set
+      }
+
+      refute_received _
+
+      :alarm_handler.clear_alarm(AlarmId2)
+
+      assert_receive %Alarmist.Event{
+        id: AlarmId2,
+        state: :clear
+      }
+
+      refute_receive _
+
+      # Test the long alarm case
+      :alarm_handler.set_alarm({AlarmId2, nil})
+
+      assert_receive %Alarmist.Event{
+        id: AlarmId2,
+        state: :set
+      }
+
+      refute_receive _
+
+      Process.sleep(100)
+
+      assert_receive %Alarmist.Event{
+        id: DebounceAlarm,
+        state: :set
+      }
+
+      :alarm_handler.clear_alarm(AlarmId2)
+
+      assert_receive %Alarmist.Event{
+        id: DebounceAlarm,
+        state: :clear
+      }
+
+      assert_receive %Alarmist.Event{
+        id: AlarmId2,
+        state: :clear
+      }
+
+      Alarmist.remove_synthetic_alarm(DebounceAlarm)
     end
 
-    Alarmist.subscribe(DebounceAlarm)
-    Alarmist.subscribe(AlarmId2)
-    Alarmist.add_synthetic_alarm(DebounceAlarm)
+    test "debounce transient set-clear-set" do
+      defmodule DebounceAlarm2 do
+        use Alarmist.Definition
 
-    # Test the transient case
-    :alarm_handler.set_alarm({AlarmId2, nil})
+        defalarm do
+          debounce(AlarmId2a, 100)
+        end
+      end
 
-    assert_receive %Alarmist.Event{
-      id: AlarmId2,
-      state: :set
-    }
+      Alarmist.subscribe(DebounceAlarm2)
+      Alarmist.add_synthetic_alarm(DebounceAlarm2)
 
-    refute_received _
+      :alarm_handler.set_alarm({AlarmId2a, nil})
+      :alarm_handler.clear_alarm(AlarmId2a)
+      :alarm_handler.set_alarm({AlarmId2a, nil})
 
-    :alarm_handler.clear_alarm(AlarmId2)
+      refute_receive _
 
-    assert_receive %Alarmist.Event{
-      id: AlarmId2,
-      state: :clear
-    }
+      assert_receive %Alarmist.Event{
+        id: DebounceAlarm2,
+        state: :set
+      }
 
-    refute_receive _
+      Process.sleep(200)
+      refute_receive _
 
-    # Test the long alarm case
-    :alarm_handler.set_alarm({AlarmId2, nil})
+      Alarmist.remove_synthetic_alarm(DebounceAlarm)
+    end
 
-    assert_receive %Alarmist.Event{
-      id: AlarmId2,
-      state: :set
-    }
+    test "debounce transient clear-set-clear" do
+      defmodule DebounceAlarm3 do
+        use Alarmist.Definition
 
-    refute_receive _
+        defalarm do
+          debounce(AlarmId2b, 100)
+        end
+      end
 
-    Process.sleep(100)
+      Alarmist.subscribe(DebounceAlarm3)
+      Alarmist.add_synthetic_alarm(DebounceAlarm3)
 
-    assert_receive %Alarmist.Event{
-      id: DebounceAlarm,
-      state: :set
-    }
+      :alarm_handler.clear_alarm(AlarmId2b)
+      :alarm_handler.set_alarm({AlarmId2b, nil})
+      :alarm_handler.clear_alarm(AlarmId2b)
 
-    :alarm_handler.clear_alarm(AlarmId2)
+      Process.sleep(200)
+      refute_receive _
 
-    assert_receive %Alarmist.Event{
-      id: DebounceAlarm,
-      state: :clear
-    }
-
-    assert_receive %Alarmist.Event{
-      id: AlarmId2,
-      state: :clear
-    }
-
-    Alarmist.remove_synthetic_alarm(DebounceAlarm)
+      Alarmist.remove_synthetic_alarm(DebounceAlarm3)
+    end
   end
 
   test "compound rules" do
