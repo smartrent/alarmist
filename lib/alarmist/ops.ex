@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 SmartRent Technologies, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 defmodule Alarmist.Ops do
   @moduledoc """
   Derivative alarm generation operations

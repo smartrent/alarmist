@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 SmartRent Technologies, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 defmodule Alarmist.Event do
   @moduledoc """
   Struct sent to subscribers on property changes

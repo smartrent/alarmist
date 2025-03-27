@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 SmartRent Technologies, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 defmodule Alarmist.Matcher do
   @moduledoc false
   # Match logic using atom-based keys used in PropertyTable.

@@ -12,6 +12,13 @@ tags: &tags
   ]
 
 jobs:
+  check-license:
+    docker:
+      - image: fsfe/reuse:latest
+    steps:
+      - checkout
+      - run: reuse lint
+
   build-test:
     parameters:
       tag:
@@ -58,8 +65,15 @@ jobs:
 workflows:
   checks:
     jobs:
+      - check-license:
+          filters:
+            tags:
+              only: /.*/
       - build-test:
           name: << matrix.tag >>
           matrix:
             parameters:
               tag: *tags
+          filters:
+            tags:
+              only: /.*/

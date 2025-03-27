@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 SmartRent Technologies, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 defmodule Alarmist.Application do
   @moduledoc false
   use Application
