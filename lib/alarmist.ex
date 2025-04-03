@@ -83,11 +83,32 @@ defmodule Alarmist do
   end
 
   @doc """
+  Subscribe to alarm status events for all alarms
+
+  See `subscribe/1` for the event format.
+  """
+  @spec subscribe_all() :: :ok
+  def subscribe_all() do
+    PropertyTable.subscribe(Alarmist, [])
+  end
+
+  @doc """
   Unsubscribe the current process from the specified alarm `:set` and `:clear` events
   """
   @spec unsubscribe(alarm_id()) :: :ok
   def unsubscribe(alarm_id) when is_atom(alarm_id) do
     PropertyTable.unsubscribe(Alarmist, [alarm_id])
+  end
+
+  @doc """
+  Unsubscribe from alarm status events for all alarms
+
+  **NOTE:** This will only remove subscriptions created via `subscribe_all/0`, not
+  subscriptions created for individual alarms via `subscribe/1`.
+  """
+  @spec unsubscribe_all() :: :ok
+  def unsubscribe_all() do
+    PropertyTable.subscribe(Alarmist, [])
   end
 
   @doc """
