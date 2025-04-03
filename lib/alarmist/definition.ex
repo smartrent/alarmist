@@ -104,12 +104,14 @@ defmodule Alarmist.Definition do
           description: "Cannot define multiple alarms in a single module!"
       end
 
+      @alarmist_alarm_def unquote(Macro.to_string(block))
       @alarmist_alarm Alarmist.Compiler.compile(__MODULE__, unquote(expr_expanded))
     end
   end
 
   defmacro __before_compile__(env) do
     alarm = Module.get_attribute(env.module, :alarmist_alarm)
+    alarm_def = Module.get_attribute(env.module, :alarmist_alarm_def)
 
     if !alarm do
       raise CompileError,
@@ -119,6 +121,10 @@ defmodule Alarmist.Definition do
     end
 
     quote do
+      def __get_alarm_def() do
+        unquote(alarm_def)
+      end
+
       def __get_alarm() do
         unquote(Macro.escape(alarm))
       end
