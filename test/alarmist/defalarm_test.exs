@@ -16,6 +16,7 @@ defmodule Alarmist.DefAlarmTest do
 
     expected_result = [{Alarmist.Ops, :copy, [IdentityTest, MyAlarmId]}]
     assert IdentityTest.__get_alarm() == expected_result
+    assert IdentityTest.__get_alarm_def() == "MyAlarmId"
   end
 
   test "and" do
@@ -29,6 +30,7 @@ defmodule Alarmist.DefAlarmTest do
 
     expected_result = [{Alarmist.Ops, :logical_and, [AndTest, AlarmId1, AlarmId2]}]
     assert AndTest.__get_alarm() == expected_result
+    assert AndTest.__get_alarm_def() == "AlarmId1 and AlarmId2"
   end
 
   test "not" do
@@ -42,6 +44,7 @@ defmodule Alarmist.DefAlarmTest do
 
     expected_result = [{Alarmist.Ops, :logical_not, [NotTest, AlarmId1]}]
     assert NotTest.__get_alarm() == expected_result
+    assert NotTest.__get_alarm_def() == "not AlarmId1"
   end
 
   test "debounce" do
@@ -55,6 +58,7 @@ defmodule Alarmist.DefAlarmTest do
 
     expected_result = [{Alarmist.Ops, :debounce, [DebounceTest, AlarmId1, 1000]}]
     assert DebounceTest.__get_alarm() == expected_result
+    assert DebounceTest.__get_alarm_def() == "debounce(AlarmId1, 1000)"
   end
 
   test "hold" do
@@ -100,6 +104,7 @@ defmodule Alarmist.DefAlarmTest do
     ]
 
     assert AndOrTest.__get_alarm() == expected_result
+    assert AndOrTest.__get_alarm_def() == "AlarmId1 or (AlarmId2 and AlarmId3)"
   end
 
   test "compound with not" do
