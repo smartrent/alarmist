@@ -20,7 +20,7 @@ defmodule Alarmist.Ops do
 
   ```elixir
   defmodule NewAlarm do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       OriginalAlarm
@@ -44,7 +44,7 @@ defmodule Alarmist.Ops do
 
   ```elixir
   defmodule NewAlarm do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       not OriginalAlarm
@@ -73,7 +73,7 @@ defmodule Alarmist.Ops do
 
   ```elixir
   defmodule NewAlarm do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       Alarm1 and Alarm2
@@ -114,7 +114,7 @@ defmodule Alarmist.Ops do
 
   ```elixir
   defmodule NewAlarm do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       Alarm1 or Alarm2
@@ -165,7 +165,7 @@ defmodule Alarmist.Ops do
 
   ```elixir
   defmodule NewAlarm do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       debounce(Alarm1, 1_000)
@@ -206,7 +206,7 @@ defmodule Alarmist.Ops do
 
   ```elixir
   defmodule NewAlarm do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       hold(Alarm1, 1_000)
@@ -250,7 +250,7 @@ defmodule Alarmist.Ops do
 
   ```elixir
   defmodule NewAlarm do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       intensity(Alarm1, 3, 60_000)

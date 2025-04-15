@@ -7,7 +7,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "identity" do
     defmodule IdentityTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         MyAlarmId
@@ -21,7 +21,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "and" do
     defmodule AndTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         AlarmId1 and AlarmId2
@@ -35,7 +35,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "not" do
     defmodule NotTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         not AlarmId1
@@ -49,7 +49,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "debounce" do
     defmodule DebounceTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         debounce(AlarmId1, 1000)
@@ -63,7 +63,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "hold" do
     defmodule HoldTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         hold(AlarmId1, 2000)
@@ -76,7 +76,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "intensity" do
     defmodule IntensityTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         intensity(AlarmId1, 5, 10000)
@@ -89,7 +89,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "and and or" do
     defmodule AndOrTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         AlarmId1 or (AlarmId2 and AlarmId3)
@@ -109,7 +109,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "compound with not" do
     defmodule CompoundWithNotTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         (Id1 and Id2) or not (Id2 and Id3)
@@ -139,7 +139,7 @@ defmodule Alarmist.DefAlarmTest do
 
   test "complex defalarm with module attribute" do
     defmodule ModAttrTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       @debounce_value 1_000
 
@@ -159,7 +159,7 @@ defmodule Alarmist.DefAlarmTest do
   test "not specifying defalarm" do
     code = """
     defmodule NotSpecifiedTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
     end
     """
 
@@ -171,7 +171,7 @@ defmodule Alarmist.DefAlarmTest do
   test "specifying defalarm more than once" do
     code = """
     defmodule DoubleTest do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         AlarmID1
