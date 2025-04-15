@@ -22,7 +22,7 @@ defmodule Alarmist.Ops do
   defmodule NewAlarm do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       OriginalAlarm
     end
   end
@@ -46,7 +46,7 @@ defmodule Alarmist.Ops do
   defmodule NewAlarm do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       not OriginalAlarm
     end
   end
@@ -75,7 +75,7 @@ defmodule Alarmist.Ops do
   defmodule NewAlarm do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       Alarm1 and Alarm2
     end
   end
@@ -116,7 +116,7 @@ defmodule Alarmist.Ops do
   defmodule NewAlarm do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       Alarm1 or Alarm2
     end
   end
@@ -167,7 +167,7 @@ defmodule Alarmist.Ops do
   defmodule NewAlarm do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       debounce(Alarm1, 1_000)
     end
   end
@@ -208,7 +208,7 @@ defmodule Alarmist.Ops do
   defmodule NewAlarm do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       hold(Alarm1, 1_000)
     end
   end
@@ -252,7 +252,7 @@ defmodule Alarmist.Ops do
   defmodule NewAlarm do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       intensity(Alarm1, 3, 60_000)
     end
   end

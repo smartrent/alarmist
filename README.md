@@ -83,16 +83,16 @@ minimum amount of time. `Alarmist` can also raise an alarm if the network is
 bouncing up and down a lot since that's also problematic, but in a way that the
 minimum time criteria wouldn't detect.
 
-To make synthetic alarms easy to create, `Alarmist` provides the `defalarm`
+To make synthetic alarms easy to create, `Alarmist` provides the `alarm_if`
 macro. The general form is to create a module with the name of the synthetic
-alarm you're creating and then use `defalarm` to express the criteria for it
+alarm you're creating and then use `alarm_if` to express the criteria for it
 being set:
 
 ```elixir
 defmodule MyNewAlarm do
   use Alarmist.Alarm
 
-  defalarm do
+  alarm_if do
     InterestingAlarm1 and InterestingAlarm2
   end
 end
@@ -113,7 +113,7 @@ the naming of alarms between projects.
 defmodule IdenticalAlarm do
   use Alarmist.Alarm
 
-  defalarm do
+  alarm_if do
     SomeOtherAlarmName
   end
 end
@@ -129,7 +129,7 @@ chance that the alarm goes away on its own.
 defmodule RealProblemAlarm do
   use Alarmist.Alarm
 
-  defalarm do
+  alarm_if do
     # Set this module's alarm when FlakyAlarm has been set for at for 5 seconds
     debounce(FlakyAlarm, 5_000)
   end
@@ -147,7 +147,7 @@ alarm lets other code or alarms change their behavior as well.
 defmodule LongerAlarm do
   use Alarmist.Alarm
 
-  defalarm do
+  alarm_if do
     # Set the alarm for at least 3 seconds whenever FlakyAlarm
     hold(FlakyAlarm, 3_000)
   end
@@ -166,7 +166,7 @@ for a short time when it flaps too much. Some people call this a penalty box.
 defmodule IntensityThresholdAlarm do
   use Alarmist.Alarm
 
-  defalarm do
+  alarm_if do
     # Set when raised and cleared >= 5 times in 3 seconds
     intensity(FlakyAlarm, 5, 3_000)
   end
@@ -183,7 +183,7 @@ tracks exactly what you want.
 defmodule IntensityThresholdAlarm do
   use Alarmist.Alarm
 
-  defalarm do
+  alarm_if do
     (Alarm1 or Alarm2) and intensity(FlakyAlarm, 5, 10_000)
   end
 end
@@ -209,7 +209,7 @@ defmodule Demo.WiFiUnstable do
   use Alarmist.Alarm
 
   # WiFi must be down for at least 15 seconds or flapped 2 times in 60 seconds
-  defalarm do
+  alarm_if do
     debounce(Demo.WiFiDown, :timer.seconds(15)) or
       intensity(Demo.WiFiDown, 2, :timer.seconds(60))
   end
