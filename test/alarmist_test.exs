@@ -112,7 +112,7 @@ defmodule AlarmistTest do
 
   test "basic usage" do
     defmodule TestAlarm do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         AlarmId1 and AlarmId2
@@ -149,7 +149,7 @@ defmodule AlarmistTest do
 
   test "trigger on register" do
     defmodule MyAlarm6 do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         AlarmId10
@@ -173,7 +173,7 @@ defmodule AlarmistTest do
 
   test "cleared when rule deleted" do
     defmodule MyAlarm7 do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         AlarmId10
@@ -202,7 +202,7 @@ defmodule AlarmistTest do
 
   test "hold rules" do
     defmodule HoldAlarm do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         # Hold TestAlarm on for 250 ms after AlarmID1 goes away
@@ -252,7 +252,7 @@ defmodule AlarmistTest do
 
   test "intensity rules" do
     defmodule IntensityAlarm do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         intensity(AlarmId1, 3, 250)
@@ -292,7 +292,7 @@ defmodule AlarmistTest do
   describe "debounce tests" do
     test "debounce rules" do
       defmodule DebounceAlarm do
-        use Alarmist.Definition
+        use Alarmist.Alarm
 
         defalarm do
           debounce(AlarmId2, 100)
@@ -356,7 +356,7 @@ defmodule AlarmistTest do
 
     test "debounce transient set-clear-set" do
       defmodule DebounceAlarm2 do
-        use Alarmist.Definition
+        use Alarmist.Alarm
 
         defalarm do
           debounce(AlarmId2a, 100)
@@ -385,7 +385,7 @@ defmodule AlarmistTest do
 
     test "debounce transient clear-set-clear" do
       defmodule DebounceAlarm3 do
-        use Alarmist.Definition
+        use Alarmist.Alarm
 
         defalarm do
           debounce(AlarmId2b, 100)
@@ -408,7 +408,7 @@ defmodule AlarmistTest do
 
   test "compound rules" do
     defmodule TestAlarm2 do
-      use Alarmist.Definition
+      use Alarmist.Alarm
 
       defalarm do
         (Id1 and Id2) or not (Id2 and Id3)

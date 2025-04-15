@@ -10,7 +10,7 @@ defmodule Alarmist do
   what alarms are currently active and subscribe to alarm status changes.
 
   It also provides a DSL for defining alarms based on other alarms. See
-  `Alarmist.Definition`.
+  `Alarmist.Alarm`.
   """
   alias Alarmist.Compiler
   alias Alarmist.Handler
