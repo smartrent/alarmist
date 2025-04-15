@@ -142,7 +142,7 @@ defmodule Alarmist do
   @doc """
   Manually add a rule-based alarm
 
-  Use this when not using `defalarm`.
+  Use this when not using `alarm_if`.
 
   After this call, Alarmist will watch for alarms to be set based on the
   supplied rules and set or clear the specified alarm ID. The alarm ID

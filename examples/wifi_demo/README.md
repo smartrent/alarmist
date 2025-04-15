@@ -19,7 +19,7 @@ seconds) or has bounced too many times in a minute. We use the Alarmist alarm
 DSL to do this:
 
 ```elixir
-defalarm do
+alarm_if do
   debounce(WiFiDemo.WiFiDown, :timer.seconds(15)) or
     intensity(WiFiDemo.WiFiDown, 3, :timer.seconds(60))
 end
