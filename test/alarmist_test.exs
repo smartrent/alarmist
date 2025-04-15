@@ -143,7 +143,7 @@ defmodule AlarmistTest do
     defmodule TestAlarm do
       use Alarmist.Alarm
 
-      defalarm do
+      alarm_if do
         AlarmId1 and AlarmId2
       end
     end
@@ -180,7 +180,7 @@ defmodule AlarmistTest do
     defmodule MyAlarm6 do
       use Alarmist.Alarm
 
-      defalarm do
+      alarm_if do
         AlarmId10
       end
     end
@@ -204,7 +204,7 @@ defmodule AlarmistTest do
     defmodule MyAlarm7 do
       use Alarmist.Alarm
 
-      defalarm do
+      alarm_if do
         AlarmId10
       end
     end
@@ -233,7 +233,7 @@ defmodule AlarmistTest do
     defmodule HoldAlarm do
       use Alarmist.Alarm
 
-      defalarm do
+      alarm_if do
         # Hold TestAlarm on for 250 ms after AlarmID1 goes away
         hold(AlarmId1, 250)
       end
@@ -283,7 +283,7 @@ defmodule AlarmistTest do
     defmodule IntensityAlarm do
       use Alarmist.Alarm
 
-      defalarm do
+      alarm_if do
         intensity(AlarmId1, 3, 250)
       end
     end
@@ -323,7 +323,7 @@ defmodule AlarmistTest do
       defmodule DebounceAlarm do
         use Alarmist.Alarm
 
-        defalarm do
+        alarm_if do
           debounce(AlarmId2, 100)
         end
       end
@@ -387,7 +387,7 @@ defmodule AlarmistTest do
       defmodule DebounceAlarm2 do
         use Alarmist.Alarm
 
-        defalarm do
+        alarm_if do
           debounce(AlarmId2a, 100)
         end
       end
@@ -416,7 +416,7 @@ defmodule AlarmistTest do
       defmodule DebounceAlarm3 do
         use Alarmist.Alarm
 
-        defalarm do
+        alarm_if do
           debounce(AlarmId2b, 100)
         end
       end
@@ -439,7 +439,7 @@ defmodule AlarmistTest do
     defmodule TestAlarm2 do
       use Alarmist.Alarm
 
-      defalarm do
+      alarm_if do
         (Id1 and Id2) or not (Id2 and Id3)
       end
     end

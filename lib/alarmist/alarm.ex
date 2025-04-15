@@ -12,13 +12,13 @@ defmodule Alarmist.Alarm do
   defmodule MyAlarmModule do
     use Alarmist.Alarm
 
-    defalarm do
+    alarm_if do
       AlarmId1 and AlarmId2
     end
   end
   ```
 
-  See `Alarmist.Ops` for what operations can be included in `defalarm` block.
+  See `Alarmist.Ops` for what operations can be included in `alarm_if` block.
   """
 
   defp expand_expression(expr, caller) do
@@ -96,7 +96,7 @@ defmodule Alarmist.Alarm do
     end
   end
 
-  defmacro defalarm(do: block) do
+  defmacro alarm_if(do: block) do
     expr_expanded = expand_expression(block, __CALLER__)
 
     quote do
@@ -107,25 +107,25 @@ defmodule Alarmist.Alarm do
           description: "Cannot define multiple alarms in a single module!"
       end
 
-      @alarmist_alarm_def unquote(Macro.to_string(block))
+      @alarmist_alarm_if unquote(Macro.to_string(block))
       @alarmist_alarm Alarmist.Compiler.compile(__MODULE__, unquote(expr_expanded))
     end
   end
 
   defmacro __before_compile__(env) do
     alarm = Module.get_attribute(env.module, :alarmist_alarm)
-    alarm_def = Module.get_attribute(env.module, :alarmist_alarm_def)
+    alarm_if = Module.get_attribute(env.module, :alarmist_alarm_if)
 
     if !alarm do
       raise CompileError,
         file: env.file,
         line: env.line,
-        description: "One defalarm expected, but not found."
+        description: "One alarm_if expected, but not found."
     end
 
     quote do
-      def __get_alarm_def__() do
-        unquote(alarm_def)
+      def __get_alarm_if__() do
+        unquote(alarm_if)
       end
 
       def __get_alarm__() do
