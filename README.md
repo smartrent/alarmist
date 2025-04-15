@@ -90,7 +90,7 @@ being set:
 
 ```elixir
 defmodule MyNewAlarm do
-  use Alarmist.Definition
+  use Alarmist.Alarm
 
   defalarm do
     InterestingAlarm1 and InterestingAlarm2
@@ -111,7 +111,7 @@ the naming of alarms between projects.
 
 ```elixir
 defmodule IdenticalAlarm do
-  use Alarmist.Definition
+  use Alarmist.Alarm
 
   defalarm do
     SomeOtherAlarmName
@@ -127,7 +127,7 @@ chance that the alarm goes away on its own.
 
 ```elixir
 defmodule RealProblemAlarm do
-  use Alarmist.Definition
+  use Alarmist.Alarm
 
   defalarm do
     # Set this module's alarm when FlakyAlarm has been set for at for 5 seconds
@@ -145,7 +145,7 @@ alarm lets other code or alarms change their behavior as well.
 
 ```elixir
 defmodule LongerAlarm do
-  use Alarmist.Definition
+  use Alarmist.Alarm
 
   defalarm do
     # Set the alarm for at least 3 seconds whenever FlakyAlarm
@@ -164,7 +164,7 @@ for a short time when it flaps too much. Some people call this a penalty box.
 
 ```elixir
 defmodule IntensityThresholdAlarm do
-  use Alarmist.Definition
+  use Alarmist.Alarm
 
   defalarm do
     # Set when raised and cleared >= 5 times in 3 seconds
@@ -181,7 +181,7 @@ tracks exactly what you want.
 
 ```elixir
 defmodule IntensityThresholdAlarm do
-  use Alarmist.Definition
+  use Alarmist.Alarm
 
   defalarm do
     (Alarm1 or Alarm2) and intensity(FlakyAlarm, 5, 10_000)
@@ -206,7 +206,7 @@ defmodule Demo.WiFiUnstable do
   @moduledoc """
   Alarm for when WiFi bounces too frequently
   """
-  use Alarmist.Definition
+  use Alarmist.Alarm
 
   # WiFi must be down for at least 15 seconds or flapped 2 times in 60 seconds
   defalarm do

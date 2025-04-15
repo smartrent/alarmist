@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-defmodule Alarmist.Definition do
+defmodule Alarmist.Alarm do
   @moduledoc """
   DSL for defining alarms
 
@@ -10,7 +10,7 @@ defmodule Alarmist.Definition do
 
   ```elixir
   defmodule MyAlarmModule do
-    use Alarmist.Definition
+    use Alarmist.Alarm
 
     defalarm do
       AlarmId1 and AlarmId2
