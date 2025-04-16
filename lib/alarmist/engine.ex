@@ -216,7 +216,7 @@ defmodule Alarmist.Engine do
 
   defp unlink_rules(rules, synthetic_alarm_id) do
     rules
-    |> Enum.filter(fn {alarm_id, _rule} -> alarm_id == synthetic_alarm_id end)
+    |> Enum.reject(fn {alarm_id, _rule} -> alarm_id == synthetic_alarm_id end)
   end
 
   @doc false
