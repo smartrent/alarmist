@@ -168,13 +168,7 @@ defmodule Alarmist do
   end
 
   @doc """
-  Manually add a rule-based alarm
-
-  Use this when not using `defalarm`.
-
-  After this call, Alarmist will watch for alarms to be set based on the
-  supplied rules and set or clear the specified alarm ID. The alarm ID
-  needs to be unique.
+  Remove a rule-based alarm
   """
   @spec remove_synthetic_alarm(Alarmist.alarm_id()) :: :ok
   def remove_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
