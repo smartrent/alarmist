@@ -17,8 +17,8 @@ defmodule Alarmist.EngineTest do
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
       assert side_effects == [
-               {:set, :my_alarm_id, "description"},
-               {:set, :my_alarm_id2, "description2"}
+               {:set, :my_alarm_id, "description", :warning},
+               {:set, :my_alarm_id2, "description2", :warning}
              ]
     end
 
@@ -44,7 +44,7 @@ defmodule Alarmist.EngineTest do
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
       # transient alarm doesn't propagate
-      assert side_effects == [{:clear, :my_alarm_id, nil}]
+      assert side_effects == [{:clear, :my_alarm_id, nil, :warning}]
     end
 
     test "redundant set alarms" do
@@ -57,7 +57,7 @@ defmodule Alarmist.EngineTest do
       {_engine, side_effects} = Engine.commit_side_effects(engine)
 
       # only run final set
-      assert side_effects == [{:set, :my_alarm_id, "description2"}]
+      assert side_effects == [{:set, :my_alarm_id, "description2", :warning}]
     end
   end
 
