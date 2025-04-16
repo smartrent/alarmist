@@ -174,4 +174,12 @@ defmodule Alarmist do
   def remove_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
     Handler.remove_synthetic_alarm(alarm_id)
   end
+
+  @doc """
+  Return all synthetic alarm IDs
+  """
+  @spec synthetic_alarm_ids() :: [Alarmist.alarm_id()]
+  def synthetic_alarm_ids() do
+    Handler.synthetic_alarm_ids()
+  end
 end

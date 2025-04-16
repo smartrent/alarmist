@@ -22,6 +22,11 @@ defmodule Alarmist.Handler do
     :gen_event.call(:alarm_handler, __MODULE__, {:remove_synthetic_alarm, alarm_id})
   end
 
+  @spec synthetic_alarm_ids() :: [Alarmist.alarm_id()]
+  def synthetic_alarm_ids() do
+    :gen_event.call(:alarm_handler, __MODULE__, :synthetic_alarm_ids)
+  end
+
   @spec get_state() :: Engine.t()
   def get_state() do
     :gen_event.call(:alarm_handler, __MODULE__, :get_state)
@@ -127,6 +132,11 @@ defmodule Alarmist.Handler do
     engine = Engine.remove_synthetic_alarm(state.engine, alarm_id)
     engine = commit_side_effects(engine)
     {:ok, :ok, %{state | engine: engine}}
+  end
+
+  def handle_call(:synthetic_alarm_ids, state) do
+    alarm_ids = Engine.synthetic_alarm_ids(state.engine)
+    {:ok, alarm_ids, state}
   end
 
   def handle_call(:get_state, state) do

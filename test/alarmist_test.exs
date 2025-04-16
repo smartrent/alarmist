@@ -40,6 +40,7 @@ defmodule AlarmistTest do
     refute TestAlarm in Alarmist.get_alarm_ids()
 
     refute_receive _
+    assert Alarmist.synthetic_alarm_ids() == []
   end
 
   test "setting an alarm without a description" do
@@ -66,6 +67,7 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
+    assert Alarmist.synthetic_alarm_ids() == []
   end
 
   test "setting and clearing an alarm with a description" do
@@ -98,6 +100,7 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
+    assert Alarmist.synthetic_alarm_ids() == []
   end
 
   test "ignores unsupported alarms" do
@@ -141,7 +144,7 @@ defmodule AlarmistTest do
 
     :alarm_handler.clear_alarm(AlarmId1)
     refute_receive _
-    Alarmist.remove_synthetic_alarm(MyAlarms.HoldAlarm)
+    Alarmist.remove_synthetic_alarm(TestAlarm)
   end
 
   test "trigger on register" do
@@ -165,6 +168,7 @@ defmodule AlarmistTest do
     }
 
     Alarmist.remove_synthetic_alarm(MyAlarm6)
+    assert Alarmist.synthetic_alarm_ids() == []
   end
 
   test "cleared when rule deleted" do
@@ -192,6 +196,8 @@ defmodule AlarmistTest do
       id: MyAlarm7,
       state: :clear
     }
+
+    assert Alarmist.synthetic_alarm_ids() == []
   end
 
   test "hold rules" do
@@ -241,7 +247,7 @@ defmodule AlarmistTest do
       previous_state: :set
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarms2.HoldAlarm)
+    Alarmist.remove_synthetic_alarm(HoldAlarm)
   end
 
   test "intensity rules" do
@@ -280,7 +286,7 @@ defmodule AlarmistTest do
                    },
                    500
 
-    Alarmist.remove_synthetic_alarm(MyAlarms3.IntensityAlarm)
+    Alarmist.remove_synthetic_alarm(IntensityAlarm)
   end
 
   describe "debounce tests" do
@@ -374,7 +380,7 @@ defmodule AlarmistTest do
       Process.sleep(200)
       refute_receive _
 
-      Alarmist.remove_synthetic_alarm(DebounceAlarm)
+      Alarmist.remove_synthetic_alarm(DebounceAlarm2)
     end
 
     test "debounce transient clear-set-clear" do

@@ -219,6 +219,17 @@ defmodule Alarmist.Engine do
     |> Enum.reject(fn {alarm_id, _rule} -> alarm_id == synthetic_alarm_id end)
   end
 
+  @spec synthetic_alarm_ids(t()) :: [Alarmist.alarm_id()]
+  def synthetic_alarm_ids(engine) do
+    engine.alarm_id_to_rules
+    |> Enum.reduce(%{}, fn {_alarm_id, rules}, acc ->
+      Enum.reduce(rules, acc, fn {synthetic_alarm_id, _rule}, acc2 ->
+        Map.put(acc2, synthetic_alarm_id, true)
+      end)
+    end)
+    |> Map.keys()
+  end
+
   @doc false
   @spec cache_get(t(), Alarmist.alarm_id()) ::
           {t(), {Alarmist.alarm_state(), Alarmist.alarm_description()}}
