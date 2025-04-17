@@ -11,26 +11,18 @@ defmodule Integration.IntensityTest do
   end
 
   test "intensity rules" do
-    defmodule IntensityAlarm do
-      use Alarmist.Alarm
-
-      alarm_if do
-        intensity(AlarmId1, 3, 250)
-      end
-    end
-
     Alarmist.subscribe(IntensityAlarm)
     Alarmist.add_managed_alarm(IntensityAlarm)
 
     # Hammer out the alarms.
-    :alarm_handler.set_alarm({AlarmId1, 1})
-    :alarm_handler.clear_alarm(AlarmId1)
-    :alarm_handler.set_alarm({AlarmId1, 2})
-    :alarm_handler.clear_alarm(AlarmId1)
+    :alarm_handler.set_alarm({IntensityTriggerAlarm, 1})
+    :alarm_handler.clear_alarm(IntensityTriggerAlarm)
+    :alarm_handler.set_alarm({IntensityTriggerAlarm, 2})
+    :alarm_handler.clear_alarm(IntensityTriggerAlarm)
     refute_receive _, 10
 
     # Send the one that puts it over the edge
-    :alarm_handler.set_alarm({AlarmId1, 3})
+    :alarm_handler.set_alarm({IntensityTriggerAlarm, 3})
 
     # Give the intensity alarm half the decay time especially for slow CI
     assert_receive %Alarmist.Event{

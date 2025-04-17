@@ -44,7 +44,7 @@ defmodule Integration.BooleanTest do
 
     :alarm_handler.clear_alarm(AlarmId1)
     refute_receive _
-    Alarmist.remove_managed_alarm(MyAlarms.HoldAlarm)
+    Alarmist.remove_managed_alarm(TestAlarm)
     assert Alarmist.managed_alarm_ids() == []
   end
 

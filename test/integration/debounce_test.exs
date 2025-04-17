@@ -15,38 +15,38 @@ defmodule Integration.DebounceTest do
       use Alarmist.Alarm
 
       alarm_if do
-        debounce(AlarmId2, 100)
+        debounce(DebounceTriggerAlarm, 100)
       end
     end
 
     Alarmist.subscribe(DebounceAlarm)
-    Alarmist.subscribe(AlarmId2)
+    Alarmist.subscribe(DebounceTriggerAlarm)
     Alarmist.add_managed_alarm(DebounceAlarm)
 
     # Test the transient case
-    :alarm_handler.set_alarm({AlarmId2, nil})
+    :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
 
     assert_receive %Alarmist.Event{
-      id: AlarmId2,
+      id: DebounceTriggerAlarm,
       state: :set
     }
 
     refute_received _
 
-    :alarm_handler.clear_alarm(AlarmId2)
+    :alarm_handler.clear_alarm(DebounceTriggerAlarm)
 
     assert_receive %Alarmist.Event{
-      id: AlarmId2,
+      id: DebounceTriggerAlarm,
       state: :clear
     }
 
     refute_receive _
 
     # Test the long alarm case
-    :alarm_handler.set_alarm({AlarmId2, nil})
+    :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
 
     assert_receive %Alarmist.Event{
-      id: AlarmId2,
+      id: DebounceTriggerAlarm,
       state: :set
     }
 
@@ -59,7 +59,7 @@ defmodule Integration.DebounceTest do
       state: :set
     }
 
-    :alarm_handler.clear_alarm(AlarmId2)
+    :alarm_handler.clear_alarm(DebounceTriggerAlarm)
 
     assert_receive %Alarmist.Event{
       id: DebounceAlarm,
@@ -67,33 +67,26 @@ defmodule Integration.DebounceTest do
     }
 
     assert_receive %Alarmist.Event{
-      id: AlarmId2,
+      id: DebounceTriggerAlarm,
       state: :clear
     }
 
     Alarmist.remove_managed_alarm(DebounceAlarm)
+    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "debounce transient set-clear-set" do
-    defmodule DebounceAlarm2 do
-      use Alarmist.Alarm
+    Alarmist.subscribe(DebounceAlarm)
+    Alarmist.add_managed_alarm(DebounceAlarm)
 
-      alarm_if do
-        debounce(AlarmId2a, 100)
-      end
-    end
-
-    Alarmist.subscribe(DebounceAlarm2)
-    Alarmist.add_managed_alarm(DebounceAlarm2)
-
-    :alarm_handler.set_alarm({AlarmId2a, nil})
-    :alarm_handler.clear_alarm(AlarmId2a)
-    :alarm_handler.set_alarm({AlarmId2a, nil})
+    :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
+    :alarm_handler.clear_alarm(DebounceTriggerAlarm)
+    :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
 
     refute_receive _
 
     assert_receive %Alarmist.Event{
-      id: DebounceAlarm2,
+      id: DebounceAlarm,
       state: :set
     }
 
@@ -105,25 +98,17 @@ defmodule Integration.DebounceTest do
   end
 
   test "debounce transient clear-set-clear" do
-    defmodule DebounceAlarm3 do
-      use Alarmist.Alarm
+    Alarmist.subscribe(DebounceAlarm)
+    Alarmist.add_managed_alarm(DebounceAlarm)
 
-      alarm_if do
-        debounce(AlarmId2b, 100)
-      end
-    end
-
-    Alarmist.subscribe(DebounceAlarm3)
-    Alarmist.add_managed_alarm(DebounceAlarm3)
-
-    :alarm_handler.clear_alarm(AlarmId2b)
-    :alarm_handler.set_alarm({AlarmId2b, nil})
-    :alarm_handler.clear_alarm(AlarmId2b)
+    :alarm_handler.clear_alarm(DebounceTriggerAlarm)
+    :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
+    :alarm_handler.clear_alarm(DebounceTriggerAlarm)
 
     Process.sleep(200)
     refute_receive _
 
-    Alarmist.remove_managed_alarm(DebounceAlarm3)
+    Alarmist.remove_managed_alarm(DebounceAlarm)
     assert Alarmist.managed_alarm_ids() == []
   end
 end

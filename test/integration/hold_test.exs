@@ -11,19 +11,10 @@ defmodule Integration.HoldTest do
   end
 
   test "hold rules" do
-    defmodule HoldAlarm do
-      use Alarmist.Alarm
-
-      alarm_if do
-        # Hold TestAlarm on for 250 ms after AlarmID1 goes away
-        hold(AlarmId1, 250)
-      end
-    end
-
     Alarmist.subscribe(HoldAlarm)
-    Alarmist.subscribe(AlarmId1)
+    Alarmist.subscribe(HoldTriggerAlarm)
     Alarmist.add_managed_alarm(HoldAlarm)
-    :alarm_handler.set_alarm({AlarmId1, nil})
+    :alarm_handler.set_alarm({HoldTriggerAlarm, nil})
 
     assert_receive %Alarmist.Event{
       id: HoldAlarm,
@@ -32,15 +23,15 @@ defmodule Integration.HoldTest do
     }
 
     assert_receive %Alarmist.Event{
-      id: AlarmId1,
+      id: HoldTriggerAlarm,
       state: :set,
       description: nil
     }
 
-    :alarm_handler.clear_alarm(AlarmId1)
+    :alarm_handler.clear_alarm(HoldTriggerAlarm)
 
     assert_receive %Alarmist.Event{
-      id: AlarmId1,
+      id: HoldTriggerAlarm,
       state: :clear,
       description: nil,
       previous_state: :set
@@ -57,7 +48,7 @@ defmodule Integration.HoldTest do
       previous_state: :set
     }
 
-    Alarmist.remove_managed_alarm(MyAlarms2.HoldAlarm)
+    Alarmist.remove_managed_alarm(HoldAlarm)
     assert Alarmist.managed_alarm_ids() == []
   end
 end
