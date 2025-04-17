@@ -61,6 +61,7 @@ defmodule Alarmist.Definition do
 
   defp process_node(item, caller), do: Macro.expand(item, caller)
 
+  @doc false
   defmacro debounce(expression, time) do
     expr_expanded = expand_expression(expression, __CALLER__)
 
@@ -69,6 +70,7 @@ defmodule Alarmist.Definition do
     end
   end
 
+  @doc false
   defmacro hold(expression, time) do
     expr_expanded = expand_expression(expression, __CALLER__)
 
@@ -77,6 +79,7 @@ defmodule Alarmist.Definition do
     end
   end
 
+  @doc false
   defmacro intensity(expression, count, time) do
     expr_expanded = expand_expression(expression, __CALLER__)
 
