@@ -10,6 +10,7 @@ defmodule AlarmistTest do
   setup do
     # Clean up any leftover alarms from previous runs
     Enum.each(Alarmist.get_alarm_ids(), &:alarm_handler.clear_alarm(&1))
+    Enum.each(Alarmist.synthetic_alarm_ids(), &Alarmist.remove_synthetic_alarm/1)
   end
 
   test "setting and clearing one alarm" do
@@ -140,52 +141,36 @@ defmodule AlarmistTest do
   end
 
   test "trigger on register" do
-    defmodule MyAlarm6 do
-      use Alarmist.Alarm
-
-      alarm_if do
-        AlarmId10
-      end
-    end
-
-    Alarmist.subscribe(MyAlarm6)
-    :alarm_handler.set_alarm({AlarmId10, nil})
+    Alarmist.subscribe(IdentityAlarm)
+    :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
     refute_received _
 
-    Alarmist.add_synthetic_alarm(MyAlarm6)
+    Alarmist.add_synthetic_alarm(IdentityAlarm)
 
     assert_receive %Alarmist.Event{
-      id: MyAlarm6,
+      id: IdentityAlarm,
       state: :set
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarm6)
+    Alarmist.remove_synthetic_alarm(IdentityAlarm)
     assert Alarmist.synthetic_alarm_ids() == []
   end
 
   test "cleared when rule deleted" do
-    defmodule MyAlarm7 do
-      use Alarmist.Alarm
+    Alarmist.subscribe(IdentityAlarm)
+    Alarmist.add_synthetic_alarm(IdentityAlarm)
 
-      alarm_if do
-        AlarmId10
-      end
-    end
-
-    Alarmist.subscribe(MyAlarm7)
-    Alarmist.add_synthetic_alarm(MyAlarm7)
-
-    :alarm_handler.set_alarm({AlarmId10, nil})
+    :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
 
     assert_receive %Alarmist.Event{
-      id: MyAlarm7,
+      id: IdentityAlarm,
       state: :set
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarm7)
+    Alarmist.remove_synthetic_alarm(IdentityAlarm)
 
     assert_receive %Alarmist.Event{
-      id: MyAlarm7,
+      id: IdentityAlarm,
       state: :clear
     }
 
