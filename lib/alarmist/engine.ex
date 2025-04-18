@@ -22,7 +22,7 @@ defmodule Alarmist.Engine do
                                  {Alarmist.alarm_state(), Alarmist.alarm_description()})
 
   defstruct [
-    :rules,
+    :registered_rules,
     :alarm_id_to_rules,
     :cache,
     :changed_alarm_ids,
@@ -33,7 +33,8 @@ defmodule Alarmist.Engine do
   ]
 
   @typedoc """
-  * `:alarm_id_to_rules` - map of alarm_id to the list of rules to run
+  * `:registered_rules` - map of alarm_id to its compiled rules
+  * `:alarm_id_to_rules` - map of alarm_id to the list of rules to evaluate (inverse of `:registered_rules`)
   * `:cache` - temporary cache for alarm status while processing rules
   * `:changed_alarm_id` - list of alarm_ids that have changed values
   * `:timers` - map of alarm_id to pending timer
@@ -43,7 +44,7 @@ defmodule Alarmist.Engine do
   * `:lookup_fun` - function for looking up alarm state
   """
   @type t() :: %__MODULE__{
-          rules: map(),
+          registered_rules: %{Alarmist.alarm_id() => Alarmist.compiled_rules()},
           alarm_id_to_rules: map(),
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
@@ -56,7 +57,7 @@ defmodule Alarmist.Engine do
   @spec init(alarm_lookup_fun()) :: t()
   def init(lookup_fun) do
     %__MODULE__{
-      rules: %{},
+      registered_rules: %{},
       alarm_id_to_rules: %{},
       cache: %{},
       changed_alarm_ids: [],
@@ -155,22 +156,37 @@ defmodule Alarmist.Engine do
 
   The synthetic alarm will be evaluated, so if the synthetic alarm ID already
   has subscribers, they'll get notified if the alarm is set.
-
-  Raises on errors
   """
   @spec add_synthetic_alarm(t(), Alarmist.alarm_id(), Alarmist.compiled_rules()) :: t()
   def add_synthetic_alarm(engine, alarm_id, compiled_rules) do
-    if Map.has_key?(engine.alarm_id_to_rules, alarm_id),
-      do: raise(RuntimeError, "#{inspect(alarm_id)} already exists")
+    engine
+    |> remove_alarm_if_exists(alarm_id)
+    |> register_rules(alarm_id, compiled_rules)
+    |> link_rules(compiled_rules, alarm_id)
+    |> do_run([alarm_id])
+  end
 
-    engine =
-      Enum.reduce(compiled_rules, engine, fn rule, engine -> link_rule(engine, rule, alarm_id) end)
+  defp remove_alarm_if_exists(engine, alarm_id) do
+    if Map.has_key?(engine.registered_rules, alarm_id) do
+      remove_synthetic_alarm(engine, alarm_id)
+    else
+      engine
+    end
+  end
+
+  defp register_rules(engine, alarm_id, compiled_rules) do
+    %{engine | registered_rules: Map.put(engine.registered_rules, alarm_id, compiled_rules)}
+  end
+
+  defp link_rules(engine, rules, synthetic_alarm_id) do
+    new_engine =
+      Enum.reduce(rules, engine, fn rule, e ->
+        link_rule(e, rule, synthetic_alarm_id)
+      end)
 
     # All input alarms are marked as changed just in case this rule triggers
     # immediately, but make sure we're not including a change twice.
-    engine = %{engine | changed_alarm_ids: Enum.uniq(engine.changed_alarm_ids)}
-
-    do_run(engine, [alarm_id])
+    %{new_engine | changed_alarm_ids: Enum.uniq(new_engine.changed_alarm_ids)}
   end
 
   defp link_rule(engine, rule, synthetic_alarm_id) do
@@ -208,7 +224,8 @@ defmodule Alarmist.Engine do
 
     %{
       engine
-      | alarm_id_to_rules: new_alarm_id_to_rules,
+      | registered_rules: Map.delete(engine.registered_rules, synthetic_alarm_id),
+        alarm_id_to_rules: new_alarm_id_to_rules,
         states: Map.delete(engine.states, synthetic_alarm_id)
     }
     |> cache_put(synthetic_alarm_id, :clear, nil)
