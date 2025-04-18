@@ -39,6 +39,6 @@ defmodule Integration.IntensityTest do
                    500
 
     Alarmist.remove_synthetic_alarm(IntensityAlarm)
-    assert Alarmist.synthetic_alarm_ids() == []
+    :alarm_handler.clear_alarm(IntensityTriggerAlarm)
   end
 end

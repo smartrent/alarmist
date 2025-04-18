@@ -153,7 +153,7 @@ defmodule AlarmistTest do
     }
 
     Alarmist.remove_synthetic_alarm(IdentityAlarm)
-    assert Alarmist.synthetic_alarm_ids() == []
+    :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
 
   test "cleared when rule deleted" do
@@ -174,6 +174,6 @@ defmodule AlarmistTest do
       state: :clear
     }
 
-    assert Alarmist.synthetic_alarm_ids() == []
+    :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
 end

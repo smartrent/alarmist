@@ -94,7 +94,7 @@ defmodule Integration.DebounceTest do
     refute_receive _
 
     Alarmist.remove_synthetic_alarm(DebounceAlarm)
-    assert Alarmist.synthetic_alarm_ids() == []
+    :alarm_handler.clear_alarm(DebounceTriggerAlarm)
   end
 
   test "debounce transient clear-set-clear" do

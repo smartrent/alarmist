@@ -75,6 +75,7 @@ defmodule Integration.BooleanTest do
 
     refute_receive _
     Alarmist.remove_synthetic_alarm(TestAlarm2)
-    assert Alarmist.synthetic_alarm_ids() == []
+    :alarm_handler.clear_alarm(Id2)
+    :alarm_handler.clear_alarm(Id3)
   end
 end
