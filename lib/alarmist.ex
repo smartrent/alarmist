@@ -59,7 +59,7 @@ defmodule Alarmist do
   """
   @type alarm_state() :: :set | :clear
 
-  @type compiled_rules() :: [Compiler.rule()]
+  @type compiled_condition() :: %{rules: [Compiler.rule()], temporaries: [alarm_id()]}
 
   @doc """
   Subscribe to alarm status events
@@ -140,26 +140,26 @@ defmodule Alarmist do
   end
 
   @doc """
-  Manually add a rule-based alarm
+  Manually add a condition-based alarm
 
   Use this when not using `alarm_if`.
 
   After this call, Alarmist will watch for alarms to be set based on the
-  supplied rules and set or clear the specified alarm ID. The alarm ID
+  supplied condition and set or clear the specified alarm ID. The alarm ID
   needs to be unique.
   """
-  @spec add_synthetic_alarm(Alarmist.alarm_id(), compiled_rules()) :: :ok
-  def add_synthetic_alarm(alarm_id, compiled_rules)
-      when is_atom(alarm_id) and is_list(compiled_rules) do
-    Handler.add_synthetic_alarm(alarm_id, compiled_rules)
+  @spec add_synthetic_alarm(Alarmist.alarm_id(), compiled_condition()) :: :ok
+  def add_synthetic_alarm(alarm_id, compiled_condition)
+      when is_atom(alarm_id) and is_map(compiled_condition) do
+    Handler.add_synthetic_alarm(alarm_id, compiled_condition)
   end
 
   @doc """
-  Add a rule-based alarm
+  Add a condition-based alarm
 
   After this call, Alarmist will watch for alarms to be set based on the
-  supplied rules and set or clear the specified alarm ID. The alarm ID
-  needs to be unique.
+  supplied module and set or clear the specified alarm ID. The module must
+  `use Alarmist.Alarm`.
 
   Calling this function a multiple times with the same alarm results in
   the previous alarm being replaced. Alarm subscribers won't receive
@@ -167,12 +167,12 @@ defmodule Alarmist do
   """
   @spec add_synthetic_alarm(module()) :: :ok
   def add_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
-    compiled_rules = alarm_id.__get_alarm__()
-    add_synthetic_alarm(alarm_id, compiled_rules)
+    compiled_condition = alarm_id.__get_condition__()
+    add_synthetic_alarm(alarm_id, compiled_condition)
   end
 
   @doc """
-  Remove a rule-based alarm
+  Remove a condition-based alarm
   """
   @spec remove_synthetic_alarm(Alarmist.alarm_id()) :: :ok
   def remove_synthetic_alarm(alarm_id) when is_atom(alarm_id) do

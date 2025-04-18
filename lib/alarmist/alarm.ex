@@ -124,11 +124,11 @@ defmodule Alarmist.Alarm do
     end
 
     quote do
-      def __get_alarm_if__() do
+      def __get_condition_source__() do
         unquote(alarm_if)
       end
 
-      def __get_alarm__() do
+      def __get_condition__() do
         unquote(Macro.escape(alarm))
       end
     end

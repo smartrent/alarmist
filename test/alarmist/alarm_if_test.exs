@@ -14,9 +14,13 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [{Alarmist.Ops, :copy, [IdentityTest, MyAlarmId]}]
-    assert IdentityTest.__get_alarm__() == expected_result
-    assert IdentityTest.__get_alarm_if__() == "MyAlarmId"
+    expected_result = %{
+      rules: [{Alarmist.Ops, :copy, [IdentityTest, MyAlarmId]}],
+      temporaries: []
+    }
+
+    assert IdentityTest.__get_condition__() == expected_result
+    assert IdentityTest.__get_condition_source__() == "MyAlarmId"
   end
 
   test "and" do
@@ -28,9 +32,13 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [{Alarmist.Ops, :logical_and, [AndTest, AlarmId1, AlarmId2]}]
-    assert AndTest.__get_alarm__() == expected_result
-    assert AndTest.__get_alarm_if__() == "AlarmId1 and AlarmId2"
+    expected_result = %{
+      rules: [{Alarmist.Ops, :logical_and, [AndTest, AlarmId1, AlarmId2]}],
+      temporaries: []
+    }
+
+    assert AndTest.__get_condition__() == expected_result
+    assert AndTest.__get_condition_source__() == "AlarmId1 and AlarmId2"
   end
 
   test "not" do
@@ -42,9 +50,13 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [{Alarmist.Ops, :logical_not, [NotTest, AlarmId1]}]
-    assert NotTest.__get_alarm__() == expected_result
-    assert NotTest.__get_alarm_if__() == "not AlarmId1"
+    expected_result = %{
+      rules: [{Alarmist.Ops, :logical_not, [NotTest, AlarmId1]}],
+      temporaries: []
+    }
+
+    assert NotTest.__get_condition__() == expected_result
+    assert NotTest.__get_condition_source__() == "not AlarmId1"
   end
 
   test "debounce" do
@@ -56,9 +68,13 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [{Alarmist.Ops, :debounce, [DebounceTest, AlarmId1, 1000]}]
-    assert DebounceTest.__get_alarm__() == expected_result
-    assert DebounceTest.__get_alarm_if__() == "debounce(AlarmId1, 1000)"
+    expected_result = %{
+      rules: [{Alarmist.Ops, :debounce, [DebounceTest, AlarmId1, 1000]}],
+      temporaries: []
+    }
+
+    assert DebounceTest.__get_condition__() == expected_result
+    assert DebounceTest.__get_condition_source__() == "debounce(AlarmId1, 1000)"
   end
 
   test "hold" do
@@ -70,8 +86,12 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [{Alarmist.Ops, :hold, [HoldTest, AlarmId1, 2000]}]
-    assert HoldTest.__get_alarm__() == expected_result
+    expected_result = %{
+      rules: [{Alarmist.Ops, :hold, [HoldTest, AlarmId1, 2000]}],
+      temporaries: []
+    }
+
+    assert HoldTest.__get_condition__() == expected_result
   end
 
   test "intensity" do
@@ -83,8 +103,12 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [{Alarmist.Ops, :intensity, [IntensityTest, AlarmId1, 5, 10000]}]
-    assert IntensityTest.__get_alarm__() == expected_result
+    expected_result = %{
+      rules: [{Alarmist.Ops, :intensity, [IntensityTest, AlarmId1, 5, 10000]}],
+      temporaries: []
+    }
+
+    assert IntensityTest.__get_condition__() == expected_result
   end
 
   test "and and or" do
@@ -96,15 +120,18 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [
-      {Alarmist.Ops, :logical_or,
-       [AndOrTest, AlarmId1, :"Elixir.Alarmist.AlarmIfTest.AndOrTest.0"]},
-      {Alarmist.Ops, :logical_and,
-       [:"Elixir.Alarmist.AlarmIfTest.AndOrTest.0", AlarmId2, AlarmId3]}
-    ]
+    expected_result = %{
+      rules: [
+        {Alarmist.Ops, :logical_or,
+         [AndOrTest, AlarmId1, :"Elixir.Alarmist.AlarmIfTest.AndOrTest.0"]},
+        {Alarmist.Ops, :logical_and,
+         [:"Elixir.Alarmist.AlarmIfTest.AndOrTest.0", AlarmId2, AlarmId3]}
+      ],
+      temporaries: [:"Elixir.Alarmist.AlarmIfTest.AndOrTest.0"]
+    }
 
-    assert AndOrTest.__get_alarm__() == expected_result
-    assert AndOrTest.__get_alarm_if__() == "AlarmId1 or (AlarmId2 and AlarmId3)"
+    assert AndOrTest.__get_condition__() == expected_result
+    assert AndOrTest.__get_condition_source__() == "AlarmId1 or (AlarmId2 and AlarmId3)"
   end
 
   test "compound with not" do
@@ -116,25 +143,32 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [
-      {Alarmist.Ops, :logical_or,
-       [
-         CompoundWithNotTest,
-         :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.0",
-         :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.2"
-       ]},
-      {Alarmist.Ops, :logical_not,
-       [
-         :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.2",
-         :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.1"
-       ]},
-      {Alarmist.Ops, :logical_and,
-       [:"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.1", Id2, Id3]},
-      {Alarmist.Ops, :logical_and,
-       [:"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.0", Id1, Id2]}
-    ]
+    expected_result = %{
+      rules: [
+        {Alarmist.Ops, :logical_or,
+         [
+           CompoundWithNotTest,
+           :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.0",
+           :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.2"
+         ]},
+        {Alarmist.Ops, :logical_not,
+         [
+           :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.2",
+           :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.1"
+         ]},
+        {Alarmist.Ops, :logical_and,
+         [:"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.1", Id2, Id3]},
+        {Alarmist.Ops, :logical_and,
+         [:"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.0", Id1, Id2]}
+      ],
+      temporaries: [
+        :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.2",
+        :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.1",
+        :"Elixir.Alarmist.AlarmIfTest.CompoundWithNotTest.0"
+      ]
+    }
 
-    assert CompoundWithNotTest.__get_alarm__() == expected_result
+    assert CompoundWithNotTest.__get_condition__() == expected_result
   end
 
   test "complex alarm_if with module attribute" do
@@ -149,11 +183,14 @@ defmodule Alarmist.AlarmIfTest do
       end
     end
 
-    expected_result = [
-      {Alarmist.Ops, :debounce, [Alarmist.AlarmIfTest.ModAttrTest, AlarmID1, 1100]}
-    ]
+    expected_result = %{
+      rules: [
+        {Alarmist.Ops, :debounce, [Alarmist.AlarmIfTest.ModAttrTest, AlarmID1, 1100]}
+      ],
+      temporaries: []
+    }
 
-    assert ModAttrTest.__get_alarm__() == expected_result
+    assert ModAttrTest.__get_condition__() == expected_result
   end
 
   test "not specifying alarm_if" do
