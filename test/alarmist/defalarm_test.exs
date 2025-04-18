@@ -15,8 +15,8 @@ defmodule Alarmist.DefAlarmTest do
     end
 
     expected_result = [{Alarmist.Ops, :copy, [IdentityTest, MyAlarmId]}]
-    assert IdentityTest.__get_alarm() == expected_result
-    assert IdentityTest.__get_alarm_def() == "MyAlarmId"
+    assert IdentityTest.__get_alarm__() == expected_result
+    assert IdentityTest.__get_alarm_def__() == "MyAlarmId"
   end
 
   test "and" do
@@ -29,8 +29,8 @@ defmodule Alarmist.DefAlarmTest do
     end
 
     expected_result = [{Alarmist.Ops, :logical_and, [AndTest, AlarmId1, AlarmId2]}]
-    assert AndTest.__get_alarm() == expected_result
-    assert AndTest.__get_alarm_def() == "AlarmId1 and AlarmId2"
+    assert AndTest.__get_alarm__() == expected_result
+    assert AndTest.__get_alarm_def__() == "AlarmId1 and AlarmId2"
   end
 
   test "not" do
@@ -43,8 +43,8 @@ defmodule Alarmist.DefAlarmTest do
     end
 
     expected_result = [{Alarmist.Ops, :logical_not, [NotTest, AlarmId1]}]
-    assert NotTest.__get_alarm() == expected_result
-    assert NotTest.__get_alarm_def() == "not AlarmId1"
+    assert NotTest.__get_alarm__() == expected_result
+    assert NotTest.__get_alarm_def__() == "not AlarmId1"
   end
 
   test "debounce" do
@@ -57,8 +57,8 @@ defmodule Alarmist.DefAlarmTest do
     end
 
     expected_result = [{Alarmist.Ops, :debounce, [DebounceTest, AlarmId1, 1000]}]
-    assert DebounceTest.__get_alarm() == expected_result
-    assert DebounceTest.__get_alarm_def() == "debounce(AlarmId1, 1000)"
+    assert DebounceTest.__get_alarm__() == expected_result
+    assert DebounceTest.__get_alarm_def__() == "debounce(AlarmId1, 1000)"
   end
 
   test "hold" do
@@ -71,7 +71,7 @@ defmodule Alarmist.DefAlarmTest do
     end
 
     expected_result = [{Alarmist.Ops, :hold, [HoldTest, AlarmId1, 2000]}]
-    assert HoldTest.__get_alarm() == expected_result
+    assert HoldTest.__get_alarm__() == expected_result
   end
 
   test "intensity" do
@@ -84,7 +84,7 @@ defmodule Alarmist.DefAlarmTest do
     end
 
     expected_result = [{Alarmist.Ops, :intensity, [IntensityTest, AlarmId1, 5, 10000]}]
-    assert IntensityTest.__get_alarm() == expected_result
+    assert IntensityTest.__get_alarm__() == expected_result
   end
 
   test "and and or" do
@@ -103,8 +103,8 @@ defmodule Alarmist.DefAlarmTest do
        [:"Elixir.Alarmist.DefAlarmTest.AndOrTest.0", AlarmId2, AlarmId3]}
     ]
 
-    assert AndOrTest.__get_alarm() == expected_result
-    assert AndOrTest.__get_alarm_def() == "AlarmId1 or (AlarmId2 and AlarmId3)"
+    assert AndOrTest.__get_alarm__() == expected_result
+    assert AndOrTest.__get_alarm_def__() == "AlarmId1 or (AlarmId2 and AlarmId3)"
   end
 
   test "compound with not" do
@@ -134,7 +134,7 @@ defmodule Alarmist.DefAlarmTest do
        [:"Elixir.Alarmist.DefAlarmTest.CompoundWithNotTest.0", Id1, Id2]}
     ]
 
-    assert CompoundWithNotTest.__get_alarm() == expected_result
+    assert CompoundWithNotTest.__get_alarm__() == expected_result
   end
 
   test "complex defalarm with module attribute" do
@@ -153,7 +153,7 @@ defmodule Alarmist.DefAlarmTest do
       {Alarmist.Ops, :debounce, [Alarmist.DefAlarmTest.ModAttrTest, AlarmID1, 1100]}
     ]
 
-    assert ModAttrTest.__get_alarm() == expected_result
+    assert ModAttrTest.__get_alarm__() == expected_result
   end
 
   test "not specifying defalarm" do
