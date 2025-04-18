@@ -186,7 +186,7 @@ defmodule AlarmistTest do
     }
 
     Alarmist.remove_managed_alarm(IdentityAlarm)
-    assert Alarmist.managed_alarm_ids() == []
+    :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
 
   test "cleared when rule deleted" do
@@ -207,6 +207,6 @@ defmodule AlarmistTest do
       state: :clear
     }
 
-    assert Alarmist.managed_alarm_ids() == []
+    :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
 end

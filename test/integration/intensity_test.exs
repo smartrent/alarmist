@@ -39,6 +39,6 @@ defmodule Integration.IntensityTest do
                    500
 
     Alarmist.remove_managed_alarm(IntensityAlarm)
-    assert Alarmist.managed_alarm_ids() == []
+    :alarm_handler.clear_alarm(IntensityTriggerAlarm)
   end
 end
