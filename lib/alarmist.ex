@@ -160,6 +160,10 @@ defmodule Alarmist do
   After this call, Alarmist will watch for alarms to be set based on the
   supplied rules and set or clear the specified alarm ID. The alarm ID
   needs to be unique.
+
+  Calling this function a multiple times with the same alarm results in
+  the previous alarm being replaced. Alarm subscribers won't receive
+  redundant events if the rules are the same.
   """
   @spec add_synthetic_alarm(module()) :: :ok
   def add_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
