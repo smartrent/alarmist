@@ -163,7 +163,7 @@ defmodule Alarmist do
   """
   @spec add_synthetic_alarm(module()) :: :ok
   def add_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
-    compiled_rules = alarm_id.__get_alarm()
+    compiled_rules = alarm_id.__get_alarm__()
     add_synthetic_alarm(alarm_id, compiled_rules)
   end
 

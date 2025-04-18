@@ -124,11 +124,11 @@ defmodule Alarmist.Definition do
     end
 
     quote do
-      def __get_alarm_def() do
+      def __get_alarm_def__() do
         unquote(alarm_def)
       end
 
-      def __get_alarm() do
+      def __get_alarm__() do
         unquote(Macro.escape(alarm))
       end
     end
