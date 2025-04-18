@@ -136,6 +136,35 @@ defmodule AlarmistTest do
     :ok
   end
 
+  test "adding an alarm many times" do
+    defmodule MultiAddAlarm do
+      use Alarmist.Definition
+
+      defalarm do
+        AlarmId1 or AlarmId2 or AlarmId3
+      end
+    end
+
+    Alarmist.subscribe(MultiAddAlarm)
+    :alarm_handler.set_alarm({AlarmId1, nil})
+
+    Alarmist.add_synthetic_alarm(MultiAddAlarm)
+    assert_receive %Alarmist.Event{id: MultiAddAlarm, state: :set}
+
+    # Alarms replace each other to make it easier to recover from crashes (just blindly add again)
+    Alarmist.add_synthetic_alarm(MultiAddAlarm)
+    Alarmist.add_synthetic_alarm(MultiAddAlarm)
+    Alarmist.add_synthetic_alarm(MultiAddAlarm)
+
+    # Check that adding multiple times doesn't generate redundant events
+    refute_receive _
+
+    Alarmist.unsubscribe(MultiAddAlarm)
+    :alarm_handler.clear_alarm(AlarmId1)
+    Alarmist.remove_synthetic_alarm(MultiAddAlarm)
+    assert Alarmist.synthetic_alarm_ids() == []
+  end
+
   test "ignores unsupported alarms" do
     assert capture_log(fn ->
              :alarm_handler.set_alarm("TestAlarmAsString")
