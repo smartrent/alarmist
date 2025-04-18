@@ -8,9 +8,9 @@ defmodule AlarmistTest do
   import ExUnit.CaptureLog
 
   setup do
-    # Clean up any leftover alarms from previous runs
-    Enum.each(Alarmist.get_alarm_ids(), &:alarm_handler.clear_alarm(&1))
-    Enum.each(Alarmist.managed_alarm_ids(), &Alarmist.remove_managed_alarm/1)
+    AlarmUtilities.cleanup()
+
+    on_exit(fn -> AlarmUtilities.assert_clean_state() end)
   end
 
   test "setting and clearing one alarm" do
@@ -138,31 +138,23 @@ defmodule AlarmistTest do
   end
 
   test "adding an alarm many times" do
-    defmodule MultiAddAlarm do
-      use Alarmist.Alarm
+    Alarmist.subscribe(IdentityAlarm)
+    :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
 
-      alarm_if do
-        AlarmId1 or AlarmId2 or AlarmId3
-      end
-    end
-
-    Alarmist.subscribe(MultiAddAlarm)
-    :alarm_handler.set_alarm({AlarmId1, nil})
-
-    Alarmist.add_managed_alarm(MultiAddAlarm)
-    assert_receive %Alarmist.Event{id: MultiAddAlarm, state: :set}
+    Alarmist.add_managed_alarm(IdentityAlarm)
+    assert_receive %Alarmist.Event{id: IdentityAlarm, state: :set}
 
     # Alarms replace each other to make it easier to recover from crashes (just blindly add again)
-    Alarmist.add_managed_alarm(MultiAddAlarm)
-    Alarmist.add_managed_alarm(MultiAddAlarm)
-    Alarmist.add_managed_alarm(MultiAddAlarm)
+    Alarmist.add_managed_alarm(IdentityAlarm)
+    Alarmist.add_managed_alarm(IdentityAlarm)
+    Alarmist.add_managed_alarm(IdentityAlarm)
 
     # Check that adding multiple times doesn't generate redundant events
     refute_receive _
 
-    Alarmist.unsubscribe(MultiAddAlarm)
-    :alarm_handler.clear_alarm(AlarmId1)
-    Alarmist.remove_managed_alarm(MultiAddAlarm)
+    Alarmist.unsubscribe(IdentityAlarm)
+    :alarm_handler.clear_alarm(IdentityTriggerAlarm)
+    Alarmist.remove_managed_alarm(IdentityAlarm)
     assert Alarmist.managed_alarm_ids() == []
   end
 

@@ -6,8 +6,9 @@ defmodule Integration.BooleanTest do
   use ExUnit.Case, async: false
 
   setup do
-    # Clean up any leftover alarms from previous runs
-    Enum.each(Alarmist.get_alarm_ids(), &:alarm_handler.clear_alarm(&1))
+    AlarmUtilities.cleanup()
+
+    on_exit(fn -> AlarmUtilities.assert_clean_state() end)
   end
 
   test "boolean and usage" do
@@ -45,7 +46,39 @@ defmodule Integration.BooleanTest do
     :alarm_handler.clear_alarm(AlarmId1)
     refute_receive _
     Alarmist.remove_managed_alarm(TestAlarm)
-    assert Alarmist.managed_alarm_ids() == []
+  end
+
+  test "not not" do
+    # This is a simple way of exercising an intermediate alarm that defaults to set
+    defmodule NotNotAlarm do
+      use Alarmist.Alarm
+
+      alarm_if do
+        not not AlarmId1
+      end
+    end
+
+    Alarmist.subscribe(NotNotAlarm)
+    refute_received _
+
+    Alarmist.add_managed_alarm(NotNotAlarm)
+    refute_received _
+
+    :alarm_handler.set_alarm({AlarmId1, nil})
+
+    assert_receive %Alarmist.Event{
+      id: NotNotAlarm,
+      state: :set
+    }
+
+    :alarm_handler.clear_alarm(AlarmId1)
+
+    assert_receive %Alarmist.Event{
+      id: NotNotAlarm,
+      state: :clear
+    }
+
+    Alarmist.remove_managed_alarm(NotNotAlarm)
   end
 
   test "compound rules" do

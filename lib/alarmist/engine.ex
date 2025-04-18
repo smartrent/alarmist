@@ -9,6 +9,8 @@ defmodule Alarmist.Engine do
   This module is intended for users extending the Alarmist DSL.
   """
 
+  alias Alarmist.Compiler
+
   @typedoc false
   @type action() ::
           {:set, Alarmist.alarm_id(), Alarmist.alarm_description()}
@@ -22,7 +24,7 @@ defmodule Alarmist.Engine do
                                  {Alarmist.alarm_state(), Alarmist.alarm_description()})
 
   defstruct [
-    :registered_rules,
+    :registered_conditions,
     :alarm_id_to_rules,
     :cache,
     :changed_alarm_ids,
@@ -33,7 +35,7 @@ defmodule Alarmist.Engine do
   ]
 
   @typedoc """
-  * `:registered_rules` - map of alarm_id to its compiled rules
+  * `:registered_conditions` - map of alarm_id to its compiled form
   * `:alarm_id_to_rules` - map of alarm_id to the list of rules to evaluate (inverse of `:registered_rules`)
   * `:cache` - temporary cache for alarm status while processing rules
   * `:changed_alarm_id` - list of alarm_ids that have changed values
@@ -44,8 +46,8 @@ defmodule Alarmist.Engine do
   * `:lookup_fun` - function for looking up alarm state
   """
   @type t() :: %__MODULE__{
-          registered_rules: %{Alarmist.alarm_id() => Alarmist.compiled_rules()},
-          alarm_id_to_rules: map(),
+          registered_conditions: %{Alarmist.alarm_id() => Alarmist.compiled_condition()},
+          alarm_id_to_rules: %{Alarmist.alarm_id() => [Compiler.rule()]},
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
           timers: map(),
@@ -57,7 +59,7 @@ defmodule Alarmist.Engine do
   @spec init(alarm_lookup_fun()) :: t()
   def init(lookup_fun) do
     %__MODULE__{
-      registered_rules: %{},
+      registered_conditions: %{},
       alarm_id_to_rules: %{},
       cache: %{},
       changed_alarm_ids: [],
@@ -152,36 +154,39 @@ defmodule Alarmist.Engine do
   end
 
   @doc """
-  Create and add a managed alarm based on the rule specification
+  Create and add a managed alarm based on a condition specification
 
   The managed alarm will be evaluated, so if the managed alarm ID already
   has subscribers, they'll get notified if the alarm is set.
   """
-  @spec add_managed_alarm(t(), Alarmist.alarm_id(), Alarmist.compiled_rules()) :: t()
-  def add_managed_alarm(engine, alarm_id, compiled_rules) do
+  @spec add_managed_alarm(t(), Alarmist.alarm_id(), Alarmist.compiled_condition()) :: t()
+  def add_managed_alarm(engine, alarm_id, compiled_condition) do
     engine
     |> remove_alarm_if_exists(alarm_id)
-    |> register_rules(alarm_id, compiled_rules)
-    |> link_rules(compiled_rules, alarm_id)
+    |> register_condition(alarm_id, compiled_condition)
+    |> link_rules(compiled_condition.rules, alarm_id)
     |> do_run([alarm_id])
   end
 
   defp remove_alarm_if_exists(engine, alarm_id) do
-    if Map.has_key?(engine.registered_rules, alarm_id) do
+    if Map.has_key?(engine.registered_conditions, alarm_id) do
       remove_managed_alarm(engine, alarm_id)
     else
       engine
     end
   end
 
-  defp register_rules(engine, alarm_id, compiled_rules) do
-    %{engine | registered_rules: Map.put(engine.registered_rules, alarm_id, compiled_rules)}
+  defp register_condition(engine, alarm_id, compiled_condition) do
+    %{
+      engine
+      | registered_conditions: Map.put(engine.registered_conditions, alarm_id, compiled_condition)
+    }
   end
 
   defp link_rules(engine, rules, managed_alarm_id) do
     new_engine =
-      Enum.reduce(rules, engine, fn rule, e ->
-        link_rule(e, rule, managed_alarm_id)
+      Enum.reduce(rules, engine, fn rule, engine ->
+        link_rule(engine, rule, managed_alarm_id)
       end)
 
     # All input alarms are marked as changed just in case this rule triggers
@@ -213,27 +218,39 @@ defmodule Alarmist.Engine do
   """
   @spec remove_managed_alarm(t(), Alarmist.alarm_id()) :: t()
   def remove_managed_alarm(engine, managed_alarm_id) do
+    {condition, new_registered_conditions} =
+      Map.pop(engine.registered_conditions, managed_alarm_id)
+
+    alarm_ids_to_clear = [managed_alarm_id | condition.temporaries]
+
     new_alarm_id_to_rules =
       engine.alarm_id_to_rules
       |> Enum.map(fn {alarm_id, rules} ->
-        new_rules = unlink_rules(rules, managed_alarm_id)
+        new_rules = unlink_rules(rules, alarm_ids_to_clear)
         {alarm_id, new_rules}
       end)
       |> Enum.filter(fn {_alarm_id, rules} -> rules != [] end)
       |> Map.new()
 
-    %{
-      engine
-      | registered_rules: Map.delete(engine.registered_rules, managed_alarm_id),
-        alarm_id_to_rules: new_alarm_id_to_rules,
-        states: Map.delete(engine.states, managed_alarm_id)
-    }
-    |> cache_put(managed_alarm_id, :clear, nil)
+    new_states =
+      Enum.reduce(alarm_ids_to_clear, engine.states, fn alarm_id, acc ->
+        Map.delete(acc, alarm_id)
+      end)
+
+    new_engine =
+      %{
+        engine
+        | registered_conditions: new_registered_conditions,
+          alarm_id_to_rules: new_alarm_id_to_rules,
+          states: new_states
+      }
+
+    Enum.reduce(alarm_ids_to_clear, new_engine, fn a, e -> cache_put(e, a, :clear, nil) end)
   end
 
-  defp unlink_rules(rules, managed_alarm_id) do
+  defp unlink_rules(rules, alarm_ids) do
     rules
-    |> Enum.reject(fn {alarm_id, _rule} -> alarm_id == managed_alarm_id end)
+    |> Enum.reject(fn {alarm_id, _} -> alarm_id in alarm_ids end)
   end
 
   @spec managed_alarm_ids(t()) :: [Alarmist.alarm_id()]

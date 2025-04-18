@@ -59,7 +59,7 @@ defmodule Alarmist do
   """
   @type alarm_state() :: :set | :clear
 
-  @type compiled_rules() :: [Compiler.rule()]
+  @type compiled_condition() :: %{rules: [Compiler.rule()], temporaries: [alarm_id()]}
 
   @doc """
   Subscribe to alarm status events
@@ -143,8 +143,8 @@ defmodule Alarmist do
   Add a managed alarm
 
   After this call, Alarmist will watch for alarms to be set based on the
-  supplied rules and set or clear the specified alarm ID. The alarm ID
-  needs to be unique.
+  supplied module and set or clear the specified alarm ID. The module must
+  `use Alarmist.Alarm`.
 
   Calling this function a multiple times with the same alarm results in
   the previous alarm being replaced. Alarm subscribers won't receive
@@ -152,8 +152,8 @@ defmodule Alarmist do
   """
   @spec add_managed_alarm(alarm_id()) :: :ok
   def add_managed_alarm(alarm_id) when is_atom(alarm_id) do
-    compiled_rules = alarm_id.__get_alarm__()
-    Handler.add_managed_alarm(alarm_id, compiled_rules)
+    compiled_condition = alarm_id.__get_condition__()
+    Handler.add_managed_alarm(alarm_id, compiled_condition)
   end
 
   @doc """

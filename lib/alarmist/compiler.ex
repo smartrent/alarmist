@@ -11,23 +11,30 @@ defmodule Alarmist.Compiler do
   @type rule_spec() :: list()
   @type rule() :: {module(), atom(), list()}
 
-  defstruct [:temp_counter, :result_alarm_id, :rules, :aliases]
+  defstruct [:temp_counter, :result_alarm_id, :rules, :aliases, :temporaries]
 
-  @spec compile(Alarmist.alarm_id(), rule_spec()) :: [rule()]
+  @spec compile(Alarmist.alarm_id(), rule_spec()) :: Alarmist.compiled_condition()
   def compile(alarm_id, rule_spec) do
-    state = %__MODULE__{temp_counter: 0, result_alarm_id: alarm_id, rules: [], aliases: %{}}
+    state = %__MODULE__{
+      temp_counter: 0,
+      result_alarm_id: alarm_id,
+      rules: [],
+      aliases: %{},
+      temporaries: []
+    }
 
     {state, last_alarm_id} = do_compile(state, rule_spec)
     state = %{state | aliases: Map.put(state.aliases, last_alarm_id, alarm_id)}
     state = resolve_aliases(state)
-    state.rules
+
+    %{rules: state.rules, temporaries: state.temporaries}
   end
 
   defp resolve_aliases(state) do
     aliases = state.aliases
-    new_rules = Enum.map(state.rules, fn rule -> resolve_alias(rule, aliases) end)
-
-    %{state | rules: new_rules}
+    new_rules = Enum.map(state.rules, &resolve_alias(&1, aliases))
+    new_temporaries = Enum.reject(state.temporaries, &Map.has_key?(aliases, &1))
+    %{state | rules: new_rules, temporaries: new_temporaries}
   end
 
   defp resolve_alias({m, f, args}, aliases) do
@@ -63,7 +70,7 @@ defmodule Alarmist.Compiler do
 
   defp make_variable(state) do
     var = :"#{state.result_alarm_id}.#{state.temp_counter}"
-    {%{state | temp_counter: state.temp_counter + 1}, var}
+    {%{state | temp_counter: state.temp_counter + 1, temporaries: [var | state.temporaries]}, var}
   end
 
   defp resolve(state, values, result \\ [])

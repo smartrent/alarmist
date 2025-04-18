@@ -6,8 +6,9 @@ defmodule Integration.HoldTest do
   use ExUnit.Case, async: false
 
   setup do
-    # Clean up any leftover alarms from previous runs
-    Enum.each(Alarmist.get_alarm_ids(), &:alarm_handler.clear_alarm(&1))
+    AlarmUtilities.cleanup()
+
+    on_exit(fn -> AlarmUtilities.assert_clean_state() end)
   end
 
   test "hold rules" do

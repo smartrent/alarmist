@@ -17,7 +17,8 @@ defmodule Alarmist.MixProject do
       docs: docs(),
       start_permanent: Mix.env() == :prod,
       dialyzer: [
-        flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs]
+        flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs],
+        plt_add_apps: [:ex_unit]
       ],
       deps: deps(),
       preferred_cli_env: %{

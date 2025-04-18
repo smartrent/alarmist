@@ -12,7 +12,7 @@ defmodule Alarmist.Handler do
 
   require Logger
 
-  @spec add_managed_alarm(Alarmist.alarm_id(), Alarmist.compiled_rules()) :: :ok
+  @spec add_managed_alarm(Alarmist.alarm_id(), Alarmist.compiled_condition()) :: :ok
   def add_managed_alarm(alarm_id, compiled_rules) do
     :gen_event.call(:alarm_handler, __MODULE__, {:add_managed_alarm, alarm_id, compiled_rules})
   end
