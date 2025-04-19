@@ -108,7 +108,7 @@ defmodule Alarmist do
   """
   @spec unsubscribe_all() :: :ok
   def unsubscribe_all() do
-    PropertyTable.subscribe(Alarmist, [])
+    PropertyTable.unsubscribe(Alarmist, [])
   end
 
   @doc """
