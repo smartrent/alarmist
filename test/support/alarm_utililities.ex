@@ -15,10 +15,10 @@ defmodule AlarmUtilities do
     assert_clean_state()
   end
 
-  @spec assert_clean_state() :: :ok
-  def assert_clean_state() do
-    assert Alarmist.managed_alarm_ids() == []
-    assert Alarmist.get_alarms(level: :debug) == []
+  @spec assert_clean_state(GenServer.server()) :: :ok
+  def assert_clean_state(name \\ Alarmist) do
+    assert Alarmist.managed_alarm_ids(name) == []
+    assert Alarmist.get_alarms(name, level: :debug) == []
 
     refute_receive %Alarmist.Event{}
 

@@ -115,9 +115,9 @@ defmodule Alarmist do
   }
   ```
   """
-  @spec subscribe(alarm_pattern()) :: :ok
-  def subscribe(alarm_pattern) do
-    PropertyTable.subscribe(Alarmist, alarm_pattern)
+  @spec subscribe(GenServer.server(), alarm_pattern()) :: :ok
+  def subscribe(server \\ Alarmist, alarm_pattern) do
+    PropertyTable.subscribe(property_table_name(server), alarm_pattern)
   end
 
   @doc """
@@ -125,17 +125,21 @@ defmodule Alarmist do
 
   See `subscribe/1` for the event format.
   """
-  @spec subscribe_all() :: :ok
-  def subscribe_all() do
-    PropertyTable.subscribe(Alarmist, :_)
+  @spec subscribe_all(GenServer.server()) :: :ok
+  def subscribe_all(server \\ Alarmist) do
+    PropertyTable.subscribe(property_table_name(server), :_)
   end
+
+  defp property_table_name(server), do: server
+  defp handler(Alarmist), do: :alarm_handler
+  defp handler(server), do: Module.concat(server, "event")
 
   @doc """
   Unsubscribe the current process from the specified alarm `:set` and `:clear` events
   """
-  @spec unsubscribe(alarm_pattern()) :: :ok
-  def unsubscribe(alarm_pattern) do
-    PropertyTable.unsubscribe(Alarmist, alarm_pattern)
+  @spec unsubscribe(GenServer.server(), alarm_pattern()) :: :ok
+  def unsubscribe(server \\ Alarmist, alarm_pattern) do
+    PropertyTable.unsubscribe(property_table_name(server), alarm_pattern)
   end
 
   @doc """
@@ -144,10 +148,23 @@ defmodule Alarmist do
   **NOTE:** This will only remove subscriptions created via `subscribe_all/0`, not
   subscriptions created for individual alarms via `subscribe/1`.
   """
-  @spec unsubscribe_all() :: :ok
-  def unsubscribe_all() do
-    PropertyTable.unsubscribe(Alarmist, :_)
+  @spec unsubscribe_all(GenServer.server()) :: :ok
+  def unsubscribe_all(server \\ Alarmist) do
+    PropertyTable.unsubscribe(property_table_name(server), :_)
   end
+
+  def set_alarm(server \\ Alarmist, {alarm_id, _description} = alarm)
+      when is_alarm_id(alarm_id) do
+    Handler.set_alarm(handler(server), alarm)
+  end
+
+  def clear_alarm(server \\ Alarmist, alarm_id) when is_alarm_id(alarm_id) do
+    Handler.clear_alarm(handler(server), alarm_id)
+  end
+
+  def get_alarms(), do: get_alarms(Alarmist, [])
+  def get_alarms(options) when is_list(options), do: get_alarms(Alarmist, options)
+  def get_alarms(server), do: get_alarms(server, [])
 
   @doc """
   Return a list of all active alarms
@@ -159,11 +176,11 @@ defmodule Alarmist do
   Options:
   * `:level` - filter alarms by severity. Defaults to `:info`.
   """
-  @spec get_alarms(level: Logger.level()) :: [alarm()]
-  def get_alarms(options \\ []) do
+  @spec get_alarms(GenServer.server(), level: Logger.level()) :: [alarm()]
+  def get_alarms(server, options) do
     level = Keyword.get(options, :level, :info)
 
-    PropertyTable.get_all(Alarmist)
+    PropertyTable.get_all(property_table_name(server))
     |> Enum.flat_map(fn
       {alarm_id, {:set, description, alarm_level}} ->
         if Logger.compare_levels(alarm_level, level) == :lt do
@@ -177,28 +194,19 @@ defmodule Alarmist do
     end)
   end
 
+  def get_alarm_ids(), do: get_alarm_ids(Alarmist, [])
+  def get_alarm_ids(options) when is_list(options), do: get_alarm_ids(Alarmist, options)
+  def get_alarm_ids(server), do: get_alarm_ids(server, [])
+
   @doc """
   Return a list of all active alarm IDs
 
   Options:
   * `:level` - filter alarms by severity. Defaults to `:info`.
   """
-  @spec get_alarm_ids(level: Logger.level()) :: [alarm_id()]
-  def get_alarm_ids(options \\ []) do
-    level = Keyword.get(options, :level, :info)
-
-    PropertyTable.get_all(Alarmist)
-    |> Enum.flat_map(fn
-      {alarm_id, {:set, _description, alarm_level}} ->
-        if Logger.compare_levels(alarm_level, level) == :lt do
-          []
-        else
-          [alarm_id]
-        end
-
-      _ ->
-        []
-    end)
+  @spec get_alarm_ids(GenServer.server(), level: Logger.level()) :: [alarm_id()]
+  def get_alarm_ids(server, options) do
+    get_alarms(server, options) |> Enum.map(fn {alarm_id, _description} -> alarm_id end)
   end
 
   @doc """
@@ -212,8 +220,8 @@ defmodule Alarmist do
   the previous alarm being replaced. Alarm subscribers won't receive
   redundant events if the rules are the same.
   """
-  @spec add_managed_alarm(alarm_id()) :: :ok
-  def add_managed_alarm(alarm_id) when is_alarm_id(alarm_id) do
+  @spec add_managed_alarm(GenServer.server(), alarm_id()) :: :ok
+  def add_managed_alarm(server \\ Alarmist, alarm_id) when is_alarm_id(alarm_id) do
     alarm_type = alarm_type(alarm_id)
 
     if not (Code.ensure_loaded(alarm_type) == {:module, alarm_type}) or
@@ -225,7 +233,7 @@ defmodule Alarmist do
     params = alarm_type.__alarm_parameters__(alarm_id)
 
     condition = instantiate_alarm_conditions(alarm_type, params)
-    Handler.add_managed_alarm(alarm_id, condition)
+    Handler.add_managed_alarm(handler(server), alarm_id, condition)
   end
 
   defp instantiate_alarm_conditions(alarm_type, params) do
@@ -281,17 +289,17 @@ defmodule Alarmist do
   @doc """
   Remove a managed alarm
   """
-  @spec remove_managed_alarm(alarm_id()) :: :ok
-  def remove_managed_alarm(alarm_id) when is_alarm_id(alarm_id) do
-    Handler.remove_managed_alarm(alarm_id)
+  @spec remove_managed_alarm(GenServer.server(), alarm_id()) :: :ok
+  def remove_managed_alarm(server \\ Alarmist, alarm_id) when is_alarm_id(alarm_id) do
+    Handler.remove_managed_alarm(handler(server), alarm_id)
   end
 
   @doc """
   Return all managed alarm IDs
   """
-  @spec managed_alarm_ids() :: [alarm_id()]
-  def managed_alarm_ids() do
-    Handler.managed_alarm_ids()
+  @spec managed_alarm_ids(GenServer.server()) :: [alarm_id()]
+  def managed_alarm_ids(server \\ Alarmist) do
+    Handler.managed_alarm_ids(handler(server))
   end
 
   @doc """
