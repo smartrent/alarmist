@@ -103,6 +103,39 @@ defmodule AlarmistTest do
     assert Alarmist.synthetic_alarm_ids() == []
   end
 
+  test "processing alarms before it starts" do
+    _ =
+      capture_log(fn ->
+        Application.stop(:alarmist)
+        Application.stop(:sasl)
+
+        Application.start(:sasl)
+        :alarm_handler.set_alarm({:one, 1})
+        :alarm_handler.set_alarm({:two, 2})
+        :alarm_handler.set_alarm({:three, 4})
+        :alarm_handler.clear_alarm(:two)
+        :alarm_handler.clear_alarm(:three)
+        :alarm_handler.set_alarm({:three, 3})
+
+        Application.start(:alarmist)
+
+        # Application starts asynchronously, so call a function to wait for it
+        _ = Alarmist.synthetic_alarm_ids()
+
+        alarms = Alarmist.get_alarms() |> Enum.sort()
+
+        assert alarms == [
+                 {:one, 1},
+                 {:three, 3}
+               ]
+
+        :alarm_handler.clear_alarm(:one)
+        :alarm_handler.clear_alarm(:three)
+      end)
+
+    :ok
+  end
+
   test "ignores unsupported alarms" do
     assert capture_log(fn ->
              :alarm_handler.set_alarm("TestAlarmAsString")
