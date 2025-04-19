@@ -50,8 +50,8 @@ defmodule Alarmist.Handler do
 
     # Cache all of the existing alarms.
     engine =
-      Enum.reduce(existing_alarms, engine, fn {alarm_id, _description}, engine ->
-        Engine.cache_put(engine, alarm_id, :set, nil)
+      Enum.reduce(existing_alarms, engine, fn {alarm_id, description}, engine ->
+        Engine.cache_put(engine, alarm_id, :set, description)
       end)
 
     # Load the rules.
