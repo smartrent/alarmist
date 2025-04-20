@@ -13,10 +13,12 @@ defmodule Alarmist.CompilerTest do
 
       result = %{
         rules: [{Alarmist.Ops, :copy, [:result_alarm_id, :my_alarm_id]}],
-        temporaries: []
+        temporaries: [],
+        options: %{style: :atom, parameters: []}
       }
 
-      assert Compiler.compile(:result_alarm_id, program) == result
+      assert Compiler.compile(:result_alarm_id, program, %{style: :atom, parameters: []}) ==
+               result
     end
 
     test "and" do
@@ -24,10 +26,12 @@ defmodule Alarmist.CompilerTest do
 
       result = %{
         rules: [{Alarmist.Ops, :logical_and, [:result_alarm_id, :alarm_id1, :alarm_id2]}],
-        temporaries: []
+        temporaries: [],
+        options: %{style: :atom, parameters: []}
       }
 
-      assert Compiler.compile(:result_alarm_id, program) == result
+      assert Compiler.compile(:result_alarm_id, program, %{style: :atom, parameters: []}) ==
+               result
     end
 
     test "and and or" do
@@ -38,10 +42,12 @@ defmodule Alarmist.CompilerTest do
           {Alarmist.Ops, :logical_and, [:result_alarm_id, :alarm_id1, :"result_alarm_id.0"]},
           {Alarmist.Ops, :logical_or, [:"result_alarm_id.0", :alarm_id2, :alarm_id3]}
         ],
-        temporaries: [:"result_alarm_id.0"]
+        temporaries: [:"result_alarm_id.0"],
+        options: %{style: :atom, parameters: []}
       }
 
-      assert Compiler.compile(:result_alarm_id, program) == result
+      assert Compiler.compile(:result_alarm_id, program, %{style: :atom, parameters: []}) ==
+               result
     end
   end
 end

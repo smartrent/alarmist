@@ -8,6 +8,8 @@ defmodule Alarmist.Handler do
   """
   @behaviour :gen_event
 
+  import Alarmist, only: [is_alarm_id: 1]
+
   alias Alarmist.Engine
 
   require Logger
@@ -63,7 +65,7 @@ defmodule Alarmist.Handler do
   end
 
   defp lookup(alarm_id) do
-    {op, description, _level} = PropertyTable.get(Alarmist, [alarm_id], {:clear, nil, :debug})
+    {op, description, _level} = PropertyTable.get(Alarmist, alarm_id, {:clear, nil, :debug})
     {op, description}
   end
 
@@ -141,11 +143,11 @@ defmodule Alarmist.Handler do
   # end
 
   defp run_side_effect({:set, alarm_id, description, level}) do
-    PropertyTable.put(Alarmist, [alarm_id], {:set, description, level})
+    PropertyTable.put(Alarmist, alarm_id, {:set, description, level})
   end
 
   defp run_side_effect({:clear, alarm_id, _, level}) do
-    PropertyTable.put(Alarmist, [alarm_id], {:clear, nil, level})
+    PropertyTable.put(Alarmist, alarm_id, {:clear, nil, level})
   end
 
   defp run_side_effect({:start_timer, alarm_id, timeout, what, params}) do
@@ -163,14 +165,21 @@ defmodule Alarmist.Handler do
     engine
   end
 
-  defp normalize_alarm({alarm_id, _description} = alarm) when is_atom(alarm_id), do: {:ok, alarm}
+  # Proper alarms
+  defp normalize_alarm({alarm_id, _description} = alarm) when is_alarm_id(alarm_id),
+    do: {:ok, alarm}
+
+  # Fix alarms where someone obviously forgot the description
   defp normalize_alarm(alarm_id) when is_atom(alarm_id), do: {:ok, {alarm_id, []}}
 
+  # Try to fix 3+ tuple alarms
   defp normalize_alarm(alarm) when is_tuple(alarm) and is_atom(elem(alarm, 0)),
     do: {:ok, {elem(alarm, 0), tl(Tuple.to_list(alarm))}}
 
   defp normalize_alarm(_other), do: :error
 
-  defp normalize_alarm_id(alarm_id) when is_atom(alarm_id), do: {:ok, alarm_id}
+  defp normalize_alarm_id(alarm_id) when is_atom(alarm_id) or is_tuple(alarm_id),
+    do: {:ok, alarm_id}
+
   defp normalize_alarm_id(_other), do: :error
 end

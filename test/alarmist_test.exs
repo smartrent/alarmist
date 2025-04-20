@@ -5,6 +5,8 @@
 defmodule AlarmistTest do
   use ExUnit.Case, async: false
 
+  doctest Alarmist
+
   import ExUnit.CaptureLog
 
   setup do
@@ -42,6 +44,18 @@ defmodule AlarmistTest do
     refute TestAlarm in Alarmist.get_alarm_ids()
 
     refute_receive _
+  end
+
+  test "removing a non-existent alarm doesn't fail" do
+    assert Alarmist.remove_managed_alarm(BogusAlarm) == :ok
+    assert Alarmist.remove_managed_alarm({BogusAlarm, "eth0"}) == :ok
+    assert Alarmist.remove_managed_alarm({BogusAlarm}) == :ok
+  end
+
+  test "setting an invalid alarm raises" do
+    assert_raise ArgumentError, fn -> Alarmist.add_managed_alarm(BogusAlarm) end
+    assert_raise ArgumentError, fn -> Alarmist.add_managed_alarm({BogusAlarm, "eth0"}) end
+    assert_raise ArgumentError, fn -> Alarmist.add_managed_alarm({BogusAlarm}) end
   end
 
   test "setting an alarm without a description" do
@@ -313,5 +327,18 @@ defmodule AlarmistTest do
     }
 
     :alarm_handler.clear_alarm(IdentityTriggerAlarm)
+  end
+
+  test "Alarmist.alarm_type/1" do
+    assert Alarmist.alarm_type(:alarm) == :alarm
+    assert Alarmist.alarm_type({:alarm, 1}) == :alarm
+    assert Alarmist.alarm_type({:alarm, 1, 2}) == :alarm
+    assert Alarmist.alarm_type({:alarm, 1, 2, 3}) == :alarm
+
+    assert_raise ArgumentError, fn -> Alarmist.alarm_type("string") end
+    assert_raise ArgumentError, fn -> Alarmist.alarm_type({}) end
+    assert_raise ArgumentError, fn -> Alarmist.alarm_type({:no_params}) end
+    assert_raise ArgumentError, fn -> Alarmist.alarm_type({"string", 1}) end
+    assert_raise ArgumentError, fn -> Alarmist.alarm_type(%{}) end
   end
 end

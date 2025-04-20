@@ -43,26 +43,28 @@ help or get help from somewhere else like another library or a person. For
 example, code that monitors a network connection could set an alarm when the
 internet is unreachable so that UI code could show the issue to a nearby human.
 
-## Naming alarms
+## Alarm IDs
 
-Erlang's Alarm Handler allows `AlarmId`'s to be any Erlang term. While super
-flexible, it's also helpful to have a convention.
+Erlang's Alarm Handler allows `AlarmId`s to be any Erlang term. While very
+flexible, structure helps and Alarmist supports two `AlarmId` styles:
 
-For Elixir code, name alarms as you would a module. If you have helper
-functions for `AlarmDescription` data, then put those functions in a
-`defmodule` of the same name as the alarm. This is optional, so there's no need
-to create an empty module if you don't have helper functions.
+* Atoms - `InternetDown` or `:disk_full`
+* Tagged tuples - `{NetworkBroken, "eth0"}` or `{FancyAlarm, :something, 1}`
 
-For libraries, alarms are public API. There's no explicit place for alarms in
-Hex documentation, so add them where you think best. The important parts are to
-document the alarms name, when it's set and cleared, and the type and content
-of the `AlarmDescription` data.
+Alarmist refers to the atom in atom-only `AlarmId`s or the first element of the
+tuple as the alarm type. Picking the style to use is simple - does the alarm
+need parameters? No, then atom; yes, then tagged tuple. In practice, avoiding
+parameters seems to end up being enough simpler that if you're unsure, try that
+first.
 
-Erlang code should use Erlang conventions for naming modules.
+As a quick reminder, everything in the `AlarmId` is the important part when it
+comes to subscribing to and working with alarms. The `AlarmDescription` is
+informational.
 
-**Using 2-tuples for `AlarmId`'s so that you can have generic alarms is not
-supported by `Alarmist`, but probably will be added. I.e. `{NetworkDown,
-"eth0"}`**
+Alarms are public API. Alarmist recommends using Elixir modules for alarms
+where the module name is the alarm type. The module is a good place for
+documentation and helper functions related to the alarm. This also ensures that
+the alarm can be documented in Hex docs and the like.
 
 ## Managed alarms
 
@@ -104,6 +106,8 @@ In this example, `Alarmist` will set `MyNewAlarm` only when both
 Alarmist provides the following options for managed alarms:
 
 * `:level` - the severity of the alarm
+* `:style` - how the alarm message is constructed. `:atom` or `:tagged_tuple`
+* `:parameters` - a list of atom keys that define a `:tagged_tuple` alarm
 
 ### Alarm severity
 
@@ -126,6 +130,31 @@ end
 Alarmist includes the severity in alarm status change events and also lets you
 filter active alarms with `Alarmist.get_alarms/1` and
 `Alarmist.get_alarm_ids/1`.
+
+### Alarm styles
+
+The way alarms are represented is called their style. These are either atoms
+like `MyNewAlarm` or tagged tuples like `{NetworkDown, "eth0"}`. Alarmist needs
+to know how managed alarms are represented especially in the tagged tuple case
+so that it handles alarm parameters correctly. Alarms following the `:atom`
+style don't need any special handling since those are the default.
+
+An example of a `:tagged_tuple` alarm is the following:
+
+```elixir
+defmodule NetworkDownAlarm do
+  use Alarmist.Alarm, style: :tagged_tuple, parameters: [:ifname]
+
+  ...
+end
+```
+
+The use of the `:style` and `:parameters` options is used by Alarmist to
+represent this alarm as `{NetworkDownAlarm, ifname}` where `ifname` gets
+replaced with the network interface name of interest. Of course, Alarmist
+doesn't know what network interfaces are available, so application code needs
+to call `Alarmist.add_managed_alarm/1` with each possibility. I.e.,
+`Alarmist.add_managed_alarm({NetworkDownAlarm, "eth0"})`
 
 ## Managed alarm operators
 

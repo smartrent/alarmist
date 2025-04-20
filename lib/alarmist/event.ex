@@ -30,7 +30,7 @@ defmodule Alarmist.Event do
 
   @doc false
   @spec from_property_table(PropertyTable.Event.t()) :: t()
-  def from_property_table(%PropertyTable.Event{property: [alarm_id]} = event) do
+  def from_property_table(%PropertyTable.Event{property: alarm_id} = event) do
     {state, description, level} = property_to_info(event.value)
     {previous_state, _, _} = property_to_info(event.previous_value)
 

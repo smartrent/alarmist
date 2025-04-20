@@ -17,16 +17,31 @@ defmodule Alarmist do
 
   # SASL doesn't export types for these so create them here
   @typedoc """
+  Alarm type
+
+  Alarm types are atoms and for Alarmist-managed alarms, they are
+  module names.
+  """
+  @type alarm_type() :: atom()
+
+  @typedoc """
   Alarm identifier
 
   Alarm identifiers are the unique identifiers of each alarm that can be
   set or cleared.
 
-  While SASL alarm identifiers can be anything, Alarmist imposes the restriction
-  that they all be atoms. It is highly recommended to use module names to
-  avoid naming collisions. Non-atom alarms are currently ignored by Alarmist.
+  While SASL alarm identifiers can be anything, Alarmist supplies conventions
+  so that it can interpret them. This typespec follows those conventions, but
+  you may come across codes that doesn't. Those cases may be ignored or
+  misinterpreted.
   """
-  @type alarm_id() :: atom()
+  @type alarm_id() ::
+          alarm_type()
+          | {alarm_type(), any()}
+          | {alarm_type(), any(), any()}
+          | {alarm_type(), any(), any(), any()}
+
+  defguard is_alarm_id(id) when is_atom(id) or is_tuple(id)
 
   @typedoc """
   Alarm description
@@ -59,7 +74,14 @@ defmodule Alarmist do
   """
   @type alarm_state() :: :set | :clear
 
-  @type compiled_condition() :: %{rules: [Compiler.rule()], temporaries: [alarm_id()]}
+  @type compiled_condition() :: %{
+          rules: [Compiler.rule()],
+          temporaries: [alarm_id()],
+          options: map()
+        }
+
+  @type alarm_pattern() ::
+          alarm_type() | :_ | {alarm_type(), :_} | {alarm_type(), {:_, atom()}} | {:_, :_}
 
   @doc """
   Subscribe to alarm status events
@@ -78,9 +100,9 @@ defmodule Alarmist do
   }
   ```
   """
-  @spec subscribe(alarm_id()) :: :ok
-  def subscribe(alarm_id) when is_atom(alarm_id) do
-    PropertyTable.subscribe(Alarmist, [alarm_id])
+  @spec subscribe(alarm_pattern()) :: :ok
+  def subscribe(alarm_pattern) do
+    PropertyTable.subscribe(Alarmist, alarm_pattern)
   end
 
   @doc """
@@ -90,15 +112,15 @@ defmodule Alarmist do
   """
   @spec subscribe_all() :: :ok
   def subscribe_all() do
-    PropertyTable.subscribe(Alarmist, [])
+    PropertyTable.subscribe(Alarmist, :_)
   end
 
   @doc """
   Unsubscribe the current process from the specified alarm `:set` and `:clear` events
   """
-  @spec unsubscribe(alarm_id()) :: :ok
-  def unsubscribe(alarm_id) when is_atom(alarm_id) do
-    PropertyTable.unsubscribe(Alarmist, [alarm_id])
+  @spec unsubscribe(alarm_pattern()) :: :ok
+  def unsubscribe(alarm_pattern) do
+    PropertyTable.unsubscribe(Alarmist, alarm_pattern)
   end
 
   @doc """
@@ -109,7 +131,7 @@ defmodule Alarmist do
   """
   @spec unsubscribe_all() :: :ok
   def unsubscribe_all() do
-    PropertyTable.unsubscribe(Alarmist, [])
+    PropertyTable.unsubscribe(Alarmist, :_)
   end
 
   @doc """
@@ -128,7 +150,7 @@ defmodule Alarmist do
 
     PropertyTable.get_all(Alarmist)
     |> Enum.flat_map(fn
-      {[alarm_id], {:set, description, alarm_level}} ->
+      {alarm_id, {:set, description, alarm_level}} ->
         if Logger.compare_levels(alarm_level, level) == :lt do
           []
         else
@@ -152,7 +174,7 @@ defmodule Alarmist do
 
     PropertyTable.get_all(Alarmist)
     |> Enum.flat_map(fn
-      {[alarm_id], {:set, _description, alarm_level}} ->
+      {alarm_id, {:set, _description, alarm_level}} ->
         if Logger.compare_levels(alarm_level, level) == :lt do
           []
         else
@@ -176,16 +198,76 @@ defmodule Alarmist do
   redundant events if the rules are the same.
   """
   @spec add_managed_alarm(alarm_id()) :: :ok
-  def add_managed_alarm(alarm_id) when is_atom(alarm_id) do
-    compiled_condition = alarm_id.__get_condition__()
-    Handler.add_managed_alarm(alarm_id, compiled_condition)
+  def add_managed_alarm(alarm_id) when is_alarm_id(alarm_id) do
+    alarm_type = alarm_type(alarm_id)
+
+    if not (Code.ensure_loaded(alarm_type) == {:module, alarm_type}) or
+         not function_exported?(alarm_type, :__alarm_parameters__, 1) do
+      raise ArgumentError,
+            "Alarm type #{inspect(alarm_type)} is not supported. See Alarmist.Alarm"
+    end
+
+    params = alarm_type.__alarm_parameters__(alarm_id)
+
+    condition = instantiate_alarm_conditions(alarm_type, params)
+    Handler.add_managed_alarm(alarm_id, condition)
+  end
+
+  defp instantiate_alarm_conditions(alarm_type, params) do
+    compiled_condition = alarm_type.__get_condition__()
+    instantiated_rules = Enum.map(compiled_condition.rules, &instantiate_rule(&1, params))
+
+    instantiated_temporaries =
+      Enum.map(compiled_condition.temporaries, &instantiate_parameter(&1, params))
+
+    %{compiled_condition | rules: instantiated_rules, temporaries: instantiated_temporaries}
+  end
+
+  defp instantiate_rule({m, f, args}, params) do
+    resolved_args = Enum.map(args, &instantiate_parameter(&1, params))
+    {m, f, resolved_args}
+  end
+
+  defp instantiate_parameter({:alarm_id, alarm_tuple}, params) when is_tuple(alarm_tuple) do
+    [alarm_type | parameters] = Tuple.to_list(alarm_tuple)
+    instantiated_params = Enum.map(parameters, &Map.get(params, &1))
+
+    List.to_tuple([alarm_type | instantiated_params])
+  end
+
+  defp instantiate_parameter(other, _params), do: other
+
+  @doc """
+  Extract the alarm type from an alarm ID
+
+  Examples:
+  ```elixir
+  iex> Alarmist.alarm_type(MyAlarm)
+  MyAlarm
+  iex> Alarmist.alarm_type({NetworkBroken, "eth0"})
+  NetworkBroken
+  ```
+  """
+  @spec alarm_type(Alarmist.alarm_id()) :: Alarmist.alarm_type()
+  def alarm_type(alarm_id) when is_atom(alarm_id), do: alarm_id
+
+  def alarm_type(alarm_id)
+      when is_tuple(alarm_id) and
+             tuple_size(alarm_id) >= 2 and
+             is_atom(elem(alarm_id, 0)) do
+    elem(alarm_id, 0)
+  end
+
+  def alarm_type(alarm_id) do
+    raise ArgumentError,
+          "Unsupported alarm ID #{inspect(alarm_id)}. Alarm IDs must be atoms or tagged tuples."
   end
 
   @doc """
   Remove a managed alarm
   """
   @spec remove_managed_alarm(alarm_id()) :: :ok
-  def remove_managed_alarm(alarm_id) when is_atom(alarm_id) do
+  def remove_managed_alarm(alarm_id) when is_alarm_id(alarm_id) do
     Handler.remove_managed_alarm(alarm_id)
   end
 

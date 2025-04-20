@@ -10,7 +10,7 @@ defmodule Alarmist.Alarm do
 
   ```elixir
   defmodule MyAlarmModule do
-    use Alarmist.Alarm
+    use Alarmist.Alarm, level: :warning
 
     alarm_if do
       AlarmId1 and AlarmId2
@@ -21,6 +21,11 @@ defmodule Alarmist.Alarm do
   The following options can be passed to `use Alarmist.Alarm`:
 
   * `:level` - the alarm severity. See `t:Logger.level/0`. Defaults to `:warning`.
+  * `:parameters` a list of atom keys that refine the scope of the alarm. For example, a networking alarm
+    might specify `[:ifname]` to indicate that the alarm pertains to a specific network interface.
+  * `:style` the alarm style when parameters are used. Defaults to `:tagged_tuple` to indicate that
+    alarms are tuples where the first element is the alarm type and the subsequent elements are the
+    parameters.
 
   See `Alarmist.Ops` for what operations can be included in `alarm_if` block.
   """
@@ -43,6 +48,27 @@ defmodule Alarmist.Alarm do
     Module.concat([expanded_name])
   end
 
+  defp process_node({{:__aliases__, _, _modules} = node, {var, _, nil}}, caller) do
+    module = Macro.expand_literals(node, caller)
+    {:alarm_id, {module, var}}
+  end
+
+  defp process_node({:{}, _, [{:__aliases__, _, _modules} = node | parameter_nodes]}, caller) do
+    module = Macro.expand_literals(node, caller)
+
+    vars =
+      Enum.map(parameter_nodes, fn
+        {var, _, nil} -> var
+        atom when is_atom(atom) -> atom
+      end)
+
+    alarm_id_ast = Macro.escape(List.to_tuple([module | vars]))
+
+    quote do
+      {:alarm_id, unquote(alarm_id_ast)}
+    end
+  end
+
   defp process_node(number, _caller) when is_number(number), do: number
 
   defp process_node({op, _meta, children} = node, caller) when is_list(children) do
@@ -63,7 +89,9 @@ defmodule Alarmist.Alarm do
     end
   end
 
-  defp process_node(item, caller), do: Macro.expand(item, caller)
+  defp process_node(item, caller) do
+    Macro.expand(item, caller)
+  end
 
   @doc false
   defmacro debounce(expression, time) do
@@ -100,9 +128,33 @@ defmodule Alarmist.Alarm do
             "Invalid level #{inspect(level)}. Must be one of #{inspect(Logger.levels())}"
     end
 
+    parameters = Keyword.get(options, :parameters, [])
+    default_style = if parameters == [], do: :atom, else: :tagged_tuple
+    style = Keyword.get(options, :style, default_style)
+
+    case {style, parameters} do
+      {:atom, list} when list != [] ->
+        raise ArgumentError,
+              "`:atom` alarm style must not have parameters #{inspect(list)}. " <>
+                "Specify :tagged_tuple instead"
+
+      {:tagged_tuple, []} ->
+        raise ArgumentError,
+              "`tagged_tuple` requires one or more parameters."
+
+      {style, _} when style not in [:atom, :tagged_tuple] ->
+        raise ArgumentError,
+              "Invalid alarm style #{inspect(style)}. Must be one of [:atom, :tagged_tuple]"
+
+      _ ->
+        :ok
+    end
+
     quote do
       @before_compile unquote(__MODULE__)
       @alarmist_level unquote(level)
+      @alarmist_style unquote(style)
+      @alarmist_parameters unquote(parameters)
 
       Module.register_attribute(__MODULE__, :alarmist_alarm, [])
 
@@ -112,6 +164,36 @@ defmodule Alarmist.Alarm do
       @spec __alarm_level__() :: Logger.level()
       def __alarm_level__() do
         @alarmist_level
+      end
+
+      def __alarm_parameters__(alarm_id) do
+        unquote(
+          match_parameters(
+            style,
+            parameters,
+            Macro.var(:alarm_id, __MODULE__)
+          )
+        )
+      end
+    end
+  end
+
+  defp match_parameters(:atom, _parameters, _input) do
+    quote do
+      %{}
+    end
+  end
+
+  defp match_parameters(:tagged_tuple, parameters, input) do
+    vars = for i <- 1..length(parameters), do: Macro.var(:"value#{i}", __MODULE__)
+
+    match = {:{}, [], [Macro.var(:__MODULE__, __MODULE__) | vars]}
+    assignments = {:%{}, [], Enum.zip(parameters, vars)}
+
+    quote do
+      case unquote(input) do
+        unquote(match) -> unquote(assignments)
+        _ -> %{}
       end
     end
   end
@@ -128,7 +210,11 @@ defmodule Alarmist.Alarm do
       end
 
       @alarmist_alarm_if unquote(Macro.to_string(block))
-      @alarmist_alarm Alarmist.Compiler.compile(__MODULE__, unquote(expr_expanded))
+      @alarmist_alarm Alarmist.Compiler.compile(
+                        __MODULE__,
+                        unquote(expr_expanded),
+                        %{style: @alarmist_style, parameters: @alarmist_parameters}
+                      )
     end
   end
 

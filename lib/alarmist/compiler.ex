@@ -7,27 +7,47 @@ defmodule Alarmist.Compiler do
   Compiles managed alarm definitions into a list of rules
   """
 
+  import Alarmist, only: [is_alarm_id: 1]
+
   @typedoc false
   @type rule_spec() :: list()
   @type rule() :: {module(), atom(), list()}
 
-  defstruct [:temp_counter, :result_alarm_id, :rules, :aliases, :temporaries]
+  defstruct [
+    :temp_counter,
+    :result_alarm_type,
+    :result_alarm_id,
+    :rules,
+    :aliases,
+    :temporaries,
+    :options
+  ]
 
-  @spec compile(Alarmist.alarm_id(), rule_spec()) :: Alarmist.compiled_condition()
-  def compile(alarm_id, rule_spec) do
+  @spec compile(Alarmist.alarm_type(), rule_spec(), map()) :: Alarmist.compiled_condition()
+  def compile(alarm_type, rule_spec, options) do
+    result_alarm_id = alarm_type_to_id_form(alarm_type, options)
+
     state = %__MODULE__{
       temp_counter: 0,
-      result_alarm_id: alarm_id,
+      result_alarm_type: alarm_type,
+      result_alarm_id: result_alarm_id,
       rules: [],
       aliases: %{},
-      temporaries: []
+      temporaries: [],
+      options: options
     }
 
     {state, last_alarm_id} = do_compile(state, rule_spec)
-    state = %{state | aliases: Map.put(state.aliases, last_alarm_id, alarm_id)}
+    state = %{state | aliases: Map.put(state.aliases, last_alarm_id, result_alarm_id)}
     state = resolve_aliases(state)
 
-    %{rules: state.rules, temporaries: state.temporaries}
+    %{rules: state.rules, temporaries: state.temporaries, options: options}
+  end
+
+  defp alarm_type_to_id_form(alarm_type, %{style: :atom}), do: alarm_type
+
+  defp alarm_type_to_id_form(alarm_type, %{style: :tagged_tuple, parameters: params}) do
+    {:alarm_id, List.to_tuple([alarm_type | params])}
   end
 
   defp resolve_aliases(state) do
@@ -42,7 +62,7 @@ defmodule Alarmist.Compiler do
     {m, f, new_args}
   end
 
-  defp do_compile(state, alarm_id) when is_atom(alarm_id) do
+  defp do_compile(state, alarm_id) when is_alarm_id(alarm_id) do
     {state, result} = make_variable(state)
     rule = mf(:copy, [result, alarm_id])
     {%{state | rules: [rule | state.rules]}, result}
@@ -66,10 +86,13 @@ defmodule Alarmist.Compiler do
   defp mf(:and, args), do: {Alarmist.Ops, :logical_and, args}
   defp mf(:or, args), do: {Alarmist.Ops, :logical_or, args}
   defp mf(:not, args), do: {Alarmist.Ops, :logical_not, args}
-  defp mf(op, args) when op in [:copy, :debounce, :hold, :intensity], do: {Alarmist.Ops, op, args}
+
+  defp mf(op, args) when op in [:copy, :debounce, :hold, :intensity],
+    do: {Alarmist.Ops, op, args}
 
   defp make_variable(state) do
-    var = :"#{state.result_alarm_id}.#{state.temp_counter}"
+    temp_type = :"#{state.result_alarm_type}.#{state.temp_counter}"
+    var = alarm_type_to_id_form(temp_type, state.options)
     {%{state | temp_counter: state.temp_counter + 1, temporaries: [var | state.temporaries]}, var}
   end
 
@@ -79,8 +102,8 @@ defmodule Alarmist.Compiler do
     {state, Enum.reverse(result)}
   end
 
-  defp resolve(state, [alarm_id | rest], result) when is_atom(alarm_id) do
-    resolve(state, rest, [alarm_id | result])
+  defp resolve(state, [alarm_type | rest], result) when is_atom(alarm_type) do
+    resolve(state, rest, [alarm_type | result])
   end
 
   defp resolve(state, [value | rest], result) do

@@ -9,6 +9,8 @@ defmodule Alarmist.Engine do
   This module is intended for users extending the Alarmist DSL.
   """
 
+  import Alarmist, only: [is_alarm_id: 1]
+
   alias Alarmist.Compiler
 
   @typedoc false
@@ -78,14 +80,14 @@ defmodule Alarmist.Engine do
   Report that an alarm_id has changed state
   """
   @spec set_alarm(t(), Alarmist.alarm_id(), Alarmist.alarm_description()) :: t()
-  def set_alarm(engine, alarm_id, description) when is_atom(alarm_id) do
+  def set_alarm(engine, alarm_id, description) when is_alarm_id(alarm_id) do
     engine
     |> cache_put(alarm_id, :set, description)
     |> run_changed()
   end
 
   @spec clear_alarm(t(), Alarmist.alarm_id()) :: t()
-  def clear_alarm(engine, alarm_id) when is_atom(alarm_id) do
+  def clear_alarm(engine, alarm_id) when is_alarm_id(alarm_id) do
     engine
     |> cache_put(alarm_id, :clear, nil)
     |> run_changed()
@@ -181,9 +183,11 @@ defmodule Alarmist.Engine do
   end
 
   defp register_condition(engine, alarm_id, condition) do
+    level = Alarmist.alarm_type(alarm_id).__alarm_level__()
+
     # Temporary alarms are always debug level
     new_levels =
-      [{alarm_id, alarm_id.__alarm_level__()} | Enum.map(condition.temporaries, &{&1, :debug})]
+      [{alarm_id, level} | Enum.map(condition.temporaries, &{&1, :debug})]
       |> Map.new()
 
     %{
@@ -207,7 +211,7 @@ defmodule Alarmist.Engine do
   defp link_rule(engine, rule, managed_alarm_id) do
     {_m, _f, [_output_alarm_id | args]} = rule
 
-    alarm_ids_in_rule = Enum.filter(args, &is_atom/1)
+    alarm_ids_in_rule = Enum.filter(args, &is_alarm_id/1)
 
     new_alarm_id_to_rules =
       Enum.reduce(alarm_ids_in_rule, engine.alarm_id_to_rules, fn alarm_id, acc ->
@@ -231,34 +235,38 @@ defmodule Alarmist.Engine do
     {condition, new_registered_conditions} =
       Map.pop(engine.registered_conditions, managed_alarm_id)
 
-    alarm_ids_to_clear = [managed_alarm_id | condition.temporaries]
+    if condition do
+      alarm_ids_to_clear = [managed_alarm_id | condition.temporaries]
 
-    new_alarm_id_to_rules =
-      engine.alarm_id_to_rules
-      |> Enum.map(fn {alarm_id, rules} ->
-        new_rules = unlink_rules(rules, alarm_ids_to_clear)
-        {alarm_id, new_rules}
-      end)
-      |> Enum.filter(fn {_alarm_id, rules} -> rules != [] end)
-      |> Map.new()
+      new_alarm_id_to_rules =
+        engine.alarm_id_to_rules
+        |> Enum.map(fn {alarm_id, rules} ->
+          new_rules = unlink_rules(rules, alarm_ids_to_clear)
+          {alarm_id, new_rules}
+        end)
+        |> Enum.filter(fn {_alarm_id, rules} -> rules != [] end)
+        |> Map.new()
 
-    new_states =
-      Enum.reduce(alarm_ids_to_clear, engine.states, fn alarm_id, acc ->
-        Map.delete(acc, alarm_id)
-      end)
+      new_states =
+        Enum.reduce(alarm_ids_to_clear, engine.states, fn alarm_id, acc ->
+          Map.delete(acc, alarm_id)
+        end)
 
-    new_levels = Map.drop(engine.alarm_levels, alarm_ids_to_clear)
+      new_levels = Map.drop(engine.alarm_levels, alarm_ids_to_clear)
 
-    new_engine =
-      %{
-        engine
-        | registered_conditions: new_registered_conditions,
-          alarm_levels: new_levels,
-          alarm_id_to_rules: new_alarm_id_to_rules,
-          states: new_states
-      }
+      new_engine =
+        %{
+          engine
+          | registered_conditions: new_registered_conditions,
+            alarm_levels: new_levels,
+            alarm_id_to_rules: new_alarm_id_to_rules,
+            states: new_states
+        }
 
-    Enum.reduce(alarm_ids_to_clear, new_engine, fn a, e -> cache_put(e, a, :clear, nil) end)
+      Enum.reduce(alarm_ids_to_clear, new_engine, fn a, e -> cache_put(e, a, :clear, nil) end)
+    else
+      engine
+    end
   end
 
   defp unlink_rules(rules, alarm_ids) do
