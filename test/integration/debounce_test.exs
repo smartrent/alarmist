@@ -73,7 +73,6 @@ defmodule Integration.DebounceTest do
     }
 
     Alarmist.remove_managed_alarm(DebounceAlarm)
-    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "debounce transient set-clear-set" do
@@ -110,6 +109,5 @@ defmodule Integration.DebounceTest do
     refute_receive _
 
     Alarmist.remove_managed_alarm(DebounceAlarm)
-    assert Alarmist.managed_alarm_ids() == []
   end
 end

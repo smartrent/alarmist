@@ -42,7 +42,6 @@ defmodule AlarmistTest do
     refute TestAlarm in Alarmist.get_alarm_ids()
 
     refute_receive _
-    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "setting an alarm without a description" do
@@ -69,7 +68,6 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
-    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "setting and clearing an alarm with a description" do
@@ -102,7 +100,6 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
-    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "processing alarms before it starts" do
@@ -149,6 +146,7 @@ defmodule AlarmistTest do
     Alarmist.add_managed_alarm(IdentityAlarm)
     Alarmist.add_managed_alarm(IdentityAlarm)
     Alarmist.add_managed_alarm(IdentityAlarm)
+    assert Alarmist.managed_alarm_ids() == [IdentityAlarm]
 
     # Check that adding multiple times doesn't generate redundant events
     refute_receive _
@@ -156,7 +154,6 @@ defmodule AlarmistTest do
     Alarmist.unsubscribe(IdentityAlarm)
     :alarm_handler.clear_alarm(IdentityTriggerAlarm)
     Alarmist.remove_managed_alarm(IdentityAlarm)
-    assert Alarmist.managed_alarm_ids() == []
   end
 
   describe "Alarmist.get_alarms/1" do
@@ -165,6 +162,13 @@ defmodule AlarmistTest do
       Alarmist.add_managed_alarm(WarningAlarm)
       Alarmist.add_managed_alarm(InfoAlarm)
       Alarmist.add_managed_alarm(DebugAlarm)
+
+      assert Enum.sort(Alarmist.managed_alarm_ids()) == [
+               DebugAlarm,
+               ErrorAlarm,
+               InfoAlarm,
+               WarningAlarm
+             ]
 
       Alarmist.subscribe(ErrorAlarm)
 

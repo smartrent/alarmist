@@ -268,13 +268,7 @@ defmodule Alarmist.Engine do
 
   @spec managed_alarm_ids(t()) :: [Alarmist.alarm_id()]
   def managed_alarm_ids(engine) do
-    engine.alarm_id_to_rules
-    |> Enum.reduce(%{}, fn {_alarm_id, rules}, acc ->
-      Enum.reduce(rules, acc, fn {managed_alarm_id, _rule}, acc2 ->
-        Map.put(acc2, managed_alarm_id, true)
-      end)
-    end)
-    |> Map.keys()
+    Map.keys(engine.registered_conditions)
   end
 
   @doc false

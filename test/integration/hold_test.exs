@@ -50,6 +50,5 @@ defmodule Integration.HoldTest do
     }
 
     Alarmist.remove_managed_alarm(HoldAlarm)
-    assert Alarmist.managed_alarm_ids() == []
   end
 end

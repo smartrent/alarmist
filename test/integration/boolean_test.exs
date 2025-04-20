@@ -83,6 +83,7 @@ defmodule Integration.BooleanTest do
 
     Alarmist.subscribe(TestAlarm2)
     Alarmist.add_managed_alarm(TestAlarm2)
+    assert Alarmist.managed_alarm_ids() == [TestAlarm2]
 
     assert_receive %Alarmist.Event{
       id: TestAlarm2,
