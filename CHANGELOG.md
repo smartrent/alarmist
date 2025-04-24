@@ -2,6 +2,22 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.2 - 2025-04-24
+
+* Updates
+  * Fixed dropped alarm descriptions that were reported before Alarmist starts
+  * Fixed `Alarmist.remove_synthetic_alarm/1` to actually work. It doesn't look
+    like this function is actually used in practice, but it will work now.
+  * Add `Alarmist.synthetic_alarm_ids/0` to list what's been registered
+  * Add `Alarmist.subscribe_all/0` and `Alarmist.unsubscribe_all/0` for ease of
+    subscribing to all events
+  * Gracefully handle redundant alarm registrations. These can happen on
+    supervision tree restart. Extra notifications aren't sent and if alarm
+    conditions actually did change on the re-registration, the new ones would be
+    used.
+  * Alarm modules now have a `__get_alarm_def__/0` function for getting the
+    alarm condition source code
+
 ## v0.2.1 - 2025-03-27
 
 * Updates
