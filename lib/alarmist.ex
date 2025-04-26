@@ -150,7 +150,7 @@ defmodule Alarmist do
   the previous alarm being replaced. Alarm subscribers won't receive
   redundant events if the rules are the same.
   """
-  @spec add_synthetic_alarm(module()) :: :ok
+  @spec add_synthetic_alarm(alarm_id()) :: :ok
   def add_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
     compiled_rules = alarm_id.__get_alarm__()
     Handler.add_synthetic_alarm(alarm_id, compiled_rules)
@@ -159,7 +159,7 @@ defmodule Alarmist do
   @doc """
   Remove a rule-based alarm
   """
-  @spec remove_synthetic_alarm(Alarmist.alarm_id()) :: :ok
+  @spec remove_synthetic_alarm(alarm_id()) :: :ok
   def remove_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
     Handler.remove_synthetic_alarm(alarm_id)
   end
@@ -167,7 +167,7 @@ defmodule Alarmist do
   @doc """
   Return all synthetic alarm IDs
   """
-  @spec synthetic_alarm_ids() :: [Alarmist.alarm_id()]
+  @spec synthetic_alarm_ids() :: [alarm_id()]
   def synthetic_alarm_ids() do
     Handler.synthetic_alarm_ids()
   end
