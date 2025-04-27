@@ -4,7 +4,7 @@
 #
 defmodule Alarmist.Compiler do
   @moduledoc """
-  Compiles synthetic alarm definitions into a list of rules
+  Compiles managed alarm definitions into a list of rules
   """
 
   @typedoc false

@@ -4,7 +4,7 @@
 #
 defmodule Alarmist.Engine do
   @moduledoc """
-  Synthetic alarm processing engine
+  Managed alarm processing engine
 
   This module is intended for users extending the Alarmist DSL.
   """
@@ -152,13 +152,13 @@ defmodule Alarmist.Engine do
   end
 
   @doc """
-  Create and add a synthetic alarm based on the rule specification
+  Create and add a managed alarm based on the rule specification
 
-  The synthetic alarm will be evaluated, so if the synthetic alarm ID already
+  The managed alarm will be evaluated, so if the managed alarm ID already
   has subscribers, they'll get notified if the alarm is set.
   """
-  @spec add_synthetic_alarm(t(), Alarmist.alarm_id(), Alarmist.compiled_rules()) :: t()
-  def add_synthetic_alarm(engine, alarm_id, compiled_rules) do
+  @spec add_managed_alarm(t(), Alarmist.alarm_id(), Alarmist.compiled_rules()) :: t()
+  def add_managed_alarm(engine, alarm_id, compiled_rules) do
     engine
     |> remove_alarm_if_exists(alarm_id)
     |> register_rules(alarm_id, compiled_rules)
@@ -168,7 +168,7 @@ defmodule Alarmist.Engine do
 
   defp remove_alarm_if_exists(engine, alarm_id) do
     if Map.has_key?(engine.registered_rules, alarm_id) do
-      remove_synthetic_alarm(engine, alarm_id)
+      remove_managed_alarm(engine, alarm_id)
     else
       engine
     end
@@ -178,10 +178,10 @@ defmodule Alarmist.Engine do
     %{engine | registered_rules: Map.put(engine.registered_rules, alarm_id, compiled_rules)}
   end
 
-  defp link_rules(engine, rules, synthetic_alarm_id) do
+  defp link_rules(engine, rules, managed_alarm_id) do
     new_engine =
       Enum.reduce(rules, engine, fn rule, e ->
-        link_rule(e, rule, synthetic_alarm_id)
+        link_rule(e, rule, managed_alarm_id)
       end)
 
     # All input alarms are marked as changed just in case this rule triggers
@@ -189,14 +189,14 @@ defmodule Alarmist.Engine do
     %{new_engine | changed_alarm_ids: Enum.uniq(new_engine.changed_alarm_ids)}
   end
 
-  defp link_rule(engine, rule, synthetic_alarm_id) do
+  defp link_rule(engine, rule, managed_alarm_id) do
     {_m, _f, [_output_alarm_id | args]} = rule
 
     alarm_ids_in_rule = Enum.filter(args, &is_atom/1)
 
     new_alarm_id_to_rules =
       Enum.reduce(alarm_ids_in_rule, engine.alarm_id_to_rules, fn alarm_id, acc ->
-        map_update_list(acc, alarm_id, {synthetic_alarm_id, rule})
+        map_update_list(acc, alarm_id, {managed_alarm_id, rule})
       end)
 
     new_changed = alarm_ids_in_rule ++ engine.changed_alarm_ids
@@ -211,12 +211,12 @@ defmodule Alarmist.Engine do
   @doc """
   Remove all of the rules associated with the specified id
   """
-  @spec remove_synthetic_alarm(t(), Alarmist.alarm_id()) :: t()
-  def remove_synthetic_alarm(engine, synthetic_alarm_id) do
+  @spec remove_managed_alarm(t(), Alarmist.alarm_id()) :: t()
+  def remove_managed_alarm(engine, managed_alarm_id) do
     new_alarm_id_to_rules =
       engine.alarm_id_to_rules
       |> Enum.map(fn {alarm_id, rules} ->
-        new_rules = unlink_rules(rules, synthetic_alarm_id)
+        new_rules = unlink_rules(rules, managed_alarm_id)
         {alarm_id, new_rules}
       end)
       |> Enum.filter(fn {_alarm_id, rules} -> rules != [] end)
@@ -224,24 +224,24 @@ defmodule Alarmist.Engine do
 
     %{
       engine
-      | registered_rules: Map.delete(engine.registered_rules, synthetic_alarm_id),
+      | registered_rules: Map.delete(engine.registered_rules, managed_alarm_id),
         alarm_id_to_rules: new_alarm_id_to_rules,
-        states: Map.delete(engine.states, synthetic_alarm_id)
+        states: Map.delete(engine.states, managed_alarm_id)
     }
-    |> cache_put(synthetic_alarm_id, :clear, nil)
+    |> cache_put(managed_alarm_id, :clear, nil)
   end
 
-  defp unlink_rules(rules, synthetic_alarm_id) do
+  defp unlink_rules(rules, managed_alarm_id) do
     rules
-    |> Enum.reject(fn {alarm_id, _rule} -> alarm_id == synthetic_alarm_id end)
+    |> Enum.reject(fn {alarm_id, _rule} -> alarm_id == managed_alarm_id end)
   end
 
-  @spec synthetic_alarm_ids(t()) :: [Alarmist.alarm_id()]
-  def synthetic_alarm_ids(engine) do
+  @spec managed_alarm_ids(t()) :: [Alarmist.alarm_id()]
+  def managed_alarm_ids(engine) do
     engine.alarm_id_to_rules
     |> Enum.reduce(%{}, fn {_alarm_id, rules}, acc ->
-      Enum.reduce(rules, acc, fn {synthetic_alarm_id, _rule}, acc2 ->
-        Map.put(acc2, synthetic_alarm_id, true)
+      Enum.reduce(rules, acc, fn {managed_alarm_id, _rule}, acc2 ->
+        Map.put(acc2, managed_alarm_id, true)
       end)
     end)
     |> Map.keys()

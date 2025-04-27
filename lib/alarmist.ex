@@ -140,7 +140,7 @@ defmodule Alarmist do
   end
 
   @doc """
-  Add a rule-based alarm
+  Add a managed alarm
 
   After this call, Alarmist will watch for alarms to be set based on the
   supplied rules and set or clear the specified alarm ID. The alarm ID
@@ -150,25 +150,25 @@ defmodule Alarmist do
   the previous alarm being replaced. Alarm subscribers won't receive
   redundant events if the rules are the same.
   """
-  @spec add_synthetic_alarm(alarm_id()) :: :ok
-  def add_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
+  @spec add_managed_alarm(alarm_id()) :: :ok
+  def add_managed_alarm(alarm_id) when is_atom(alarm_id) do
     compiled_rules = alarm_id.__get_alarm__()
-    Handler.add_synthetic_alarm(alarm_id, compiled_rules)
+    Handler.add_managed_alarm(alarm_id, compiled_rules)
   end
 
   @doc """
-  Remove a rule-based alarm
+  Remove a managed alarm
   """
-  @spec remove_synthetic_alarm(alarm_id()) :: :ok
-  def remove_synthetic_alarm(alarm_id) when is_atom(alarm_id) do
-    Handler.remove_synthetic_alarm(alarm_id)
+  @spec remove_managed_alarm(alarm_id()) :: :ok
+  def remove_managed_alarm(alarm_id) when is_atom(alarm_id) do
+    Handler.remove_managed_alarm(alarm_id)
   end
 
   @doc """
-  Return all synthetic alarm IDs
+  Return all managed alarm IDs
   """
-  @spec synthetic_alarm_ids() :: [alarm_id()]
-  def synthetic_alarm_ids() do
-    Handler.synthetic_alarm_ids()
+  @spec managed_alarm_ids() :: [alarm_id()]
+  def managed_alarm_ids() do
+    Handler.managed_alarm_ids()
   end
 end

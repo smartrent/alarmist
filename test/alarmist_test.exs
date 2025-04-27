@@ -40,7 +40,7 @@ defmodule AlarmistTest do
     refute TestAlarm in Alarmist.get_alarm_ids()
 
     refute_receive _
-    assert Alarmist.synthetic_alarm_ids() == []
+    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "setting an alarm without a description" do
@@ -67,7 +67,7 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
-    assert Alarmist.synthetic_alarm_ids() == []
+    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "setting and clearing an alarm with a description" do
@@ -100,7 +100,7 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
-    assert Alarmist.synthetic_alarm_ids() == []
+    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "processing alarms before it starts" do
@@ -120,7 +120,7 @@ defmodule AlarmistTest do
         Application.start(:alarmist)
 
         # Application starts asynchronously, so call a function to wait for it
-        _ = Alarmist.synthetic_alarm_ids()
+        _ = Alarmist.managed_alarm_ids()
 
         alarms = Alarmist.get_alarms() |> Enum.sort()
 
@@ -148,21 +148,21 @@ defmodule AlarmistTest do
     Alarmist.subscribe(MultiAddAlarm)
     :alarm_handler.set_alarm({AlarmId1, nil})
 
-    Alarmist.add_synthetic_alarm(MultiAddAlarm)
+    Alarmist.add_managed_alarm(MultiAddAlarm)
     assert_receive %Alarmist.Event{id: MultiAddAlarm, state: :set}
 
     # Alarms replace each other to make it easier to recover from crashes (just blindly add again)
-    Alarmist.add_synthetic_alarm(MultiAddAlarm)
-    Alarmist.add_synthetic_alarm(MultiAddAlarm)
-    Alarmist.add_synthetic_alarm(MultiAddAlarm)
+    Alarmist.add_managed_alarm(MultiAddAlarm)
+    Alarmist.add_managed_alarm(MultiAddAlarm)
+    Alarmist.add_managed_alarm(MultiAddAlarm)
 
     # Check that adding multiple times doesn't generate redundant events
     refute_receive _
 
     Alarmist.unsubscribe(MultiAddAlarm)
     :alarm_handler.clear_alarm(AlarmId1)
-    Alarmist.remove_synthetic_alarm(MultiAddAlarm)
-    assert Alarmist.synthetic_alarm_ids() == []
+    Alarmist.remove_managed_alarm(MultiAddAlarm)
+    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "ignores unsupported alarms" do
@@ -184,7 +184,7 @@ defmodule AlarmistTest do
     Alarmist.subscribe(TestAlarm)
     refute_received _
 
-    Alarmist.add_synthetic_alarm(TestAlarm)
+    Alarmist.add_managed_alarm(TestAlarm)
     refute_received _
 
     :alarm_handler.set_alarm({AlarmId1, nil})
@@ -206,7 +206,7 @@ defmodule AlarmistTest do
 
     :alarm_handler.clear_alarm(AlarmId1)
     refute_receive _
-    Alarmist.remove_synthetic_alarm(TestAlarm)
+    Alarmist.remove_managed_alarm(TestAlarm)
   end
 
   test "trigger on register" do
@@ -222,15 +222,15 @@ defmodule AlarmistTest do
     :alarm_handler.set_alarm({AlarmId10, nil})
     refute_received _
 
-    Alarmist.add_synthetic_alarm(MyAlarm6)
+    Alarmist.add_managed_alarm(MyAlarm6)
 
     assert_receive %Alarmist.Event{
       id: MyAlarm6,
       state: :set
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarm6)
-    assert Alarmist.synthetic_alarm_ids() == []
+    Alarmist.remove_managed_alarm(MyAlarm6)
+    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "cleared when rule deleted" do
@@ -243,7 +243,7 @@ defmodule AlarmistTest do
     end
 
     Alarmist.subscribe(MyAlarm7)
-    Alarmist.add_synthetic_alarm(MyAlarm7)
+    Alarmist.add_managed_alarm(MyAlarm7)
 
     :alarm_handler.set_alarm({AlarmId10, nil})
 
@@ -252,14 +252,14 @@ defmodule AlarmistTest do
       state: :set
     }
 
-    Alarmist.remove_synthetic_alarm(MyAlarm7)
+    Alarmist.remove_managed_alarm(MyAlarm7)
 
     assert_receive %Alarmist.Event{
       id: MyAlarm7,
       state: :clear
     }
 
-    assert Alarmist.synthetic_alarm_ids() == []
+    assert Alarmist.managed_alarm_ids() == []
   end
 
   test "hold rules" do
@@ -274,7 +274,7 @@ defmodule AlarmistTest do
 
     Alarmist.subscribe(HoldAlarm)
     Alarmist.subscribe(AlarmId1)
-    Alarmist.add_synthetic_alarm(HoldAlarm)
+    Alarmist.add_managed_alarm(HoldAlarm)
     :alarm_handler.set_alarm({AlarmId1, nil})
 
     assert_receive %Alarmist.Event{
@@ -309,7 +309,7 @@ defmodule AlarmistTest do
       previous_state: :set
     }
 
-    Alarmist.remove_synthetic_alarm(HoldAlarm)
+    Alarmist.remove_managed_alarm(HoldAlarm)
   end
 
   test "intensity rules" do
@@ -322,7 +322,7 @@ defmodule AlarmistTest do
     end
 
     Alarmist.subscribe(IntensityAlarm)
-    Alarmist.add_synthetic_alarm(IntensityAlarm)
+    Alarmist.add_managed_alarm(IntensityAlarm)
 
     # Hammer out the alarms.
     :alarm_handler.set_alarm({AlarmId1, 1})
@@ -348,7 +348,7 @@ defmodule AlarmistTest do
                    },
                    500
 
-    Alarmist.remove_synthetic_alarm(IntensityAlarm)
+    Alarmist.remove_managed_alarm(IntensityAlarm)
   end
 
   describe "debounce tests" do
@@ -363,7 +363,7 @@ defmodule AlarmistTest do
 
       Alarmist.subscribe(DebounceAlarm)
       Alarmist.subscribe(AlarmId2)
-      Alarmist.add_synthetic_alarm(DebounceAlarm)
+      Alarmist.add_managed_alarm(DebounceAlarm)
 
       # Test the transient case
       :alarm_handler.set_alarm({AlarmId2, nil})
@@ -413,7 +413,7 @@ defmodule AlarmistTest do
         state: :clear
       }
 
-      Alarmist.remove_synthetic_alarm(DebounceAlarm)
+      Alarmist.remove_managed_alarm(DebounceAlarm)
     end
 
     test "debounce transient set-clear-set" do
@@ -426,7 +426,7 @@ defmodule AlarmistTest do
       end
 
       Alarmist.subscribe(DebounceAlarm2)
-      Alarmist.add_synthetic_alarm(DebounceAlarm2)
+      Alarmist.add_managed_alarm(DebounceAlarm2)
 
       :alarm_handler.set_alarm({AlarmId2a, nil})
       :alarm_handler.clear_alarm(AlarmId2a)
@@ -442,7 +442,7 @@ defmodule AlarmistTest do
       Process.sleep(200)
       refute_receive _
 
-      Alarmist.remove_synthetic_alarm(DebounceAlarm2)
+      Alarmist.remove_managed_alarm(DebounceAlarm2)
     end
 
     test "debounce transient clear-set-clear" do
@@ -455,7 +455,7 @@ defmodule AlarmistTest do
       end
 
       Alarmist.subscribe(DebounceAlarm3)
-      Alarmist.add_synthetic_alarm(DebounceAlarm3)
+      Alarmist.add_managed_alarm(DebounceAlarm3)
 
       :alarm_handler.clear_alarm(AlarmId2b)
       :alarm_handler.set_alarm({AlarmId2b, nil})
@@ -464,7 +464,7 @@ defmodule AlarmistTest do
       Process.sleep(200)
       refute_receive _
 
-      Alarmist.remove_synthetic_alarm(DebounceAlarm3)
+      Alarmist.remove_managed_alarm(DebounceAlarm3)
     end
   end
 
@@ -478,7 +478,7 @@ defmodule AlarmistTest do
     end
 
     Alarmist.subscribe(TestAlarm2)
-    Alarmist.add_synthetic_alarm(TestAlarm2)
+    Alarmist.add_managed_alarm(TestAlarm2)
 
     assert_receive %Alarmist.Event{
       id: TestAlarm2,
@@ -494,6 +494,6 @@ defmodule AlarmistTest do
     }
 
     refute_receive _
-    Alarmist.remove_synthetic_alarm(TestAlarm2)
+    Alarmist.remove_managed_alarm(TestAlarm2)
   end
 end

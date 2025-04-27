@@ -8,7 +8,7 @@ defmodule WiFiDemo.Application do
       {WiFiDemo.Fixer, []}
     ]
 
-    Alarmist.add_synthetic_alarm(WiFiDemo.WiFiUnstable)
+    Alarmist.add_managed_alarm(WiFiDemo.WiFiUnstable)
     Supervisor.start_link(children, strategy: :one_for_one)
   end
 end

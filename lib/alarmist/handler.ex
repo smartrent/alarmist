@@ -12,19 +12,19 @@ defmodule Alarmist.Handler do
 
   require Logger
 
-  @spec add_synthetic_alarm(Alarmist.alarm_id(), Alarmist.compiled_rules()) :: :ok
-  def add_synthetic_alarm(alarm_id, compiled_rules) do
-    :gen_event.call(:alarm_handler, __MODULE__, {:add_synthetic_alarm, alarm_id, compiled_rules})
+  @spec add_managed_alarm(Alarmist.alarm_id(), Alarmist.compiled_rules()) :: :ok
+  def add_managed_alarm(alarm_id, compiled_rules) do
+    :gen_event.call(:alarm_handler, __MODULE__, {:add_managed_alarm, alarm_id, compiled_rules})
   end
 
-  @spec remove_synthetic_alarm(Alarmist.alarm_id()) :: :ok
-  def remove_synthetic_alarm(alarm_id) do
-    :gen_event.call(:alarm_handler, __MODULE__, {:remove_synthetic_alarm, alarm_id})
+  @spec remove_managed_alarm(Alarmist.alarm_id()) :: :ok
+  def remove_managed_alarm(alarm_id) do
+    :gen_event.call(:alarm_handler, __MODULE__, {:remove_managed_alarm, alarm_id})
   end
 
-  @spec synthetic_alarm_ids() :: [Alarmist.alarm_id()]
-  def synthetic_alarm_ids() do
-    :gen_event.call(:alarm_handler, __MODULE__, :synthetic_alarm_ids)
+  @spec managed_alarm_ids() :: [Alarmist.alarm_id()]
+  def managed_alarm_ids() do
+    :gen_event.call(:alarm_handler, __MODULE__, :managed_alarm_ids)
   end
 
   @spec get_state() :: Engine.t()
@@ -55,11 +55,11 @@ defmodule Alarmist.Handler do
       end)
 
     # Load the rules.
-    synthetic_alarms = Keyword.get(options, :synthetic_alarms, [])
+    managed_alarms = Keyword.get(options, :managed_alarms, [])
 
     engine =
-      Enum.reduce(synthetic_alarms, engine, fn {alarm_id, rule}, engine ->
-        Engine.add_synthetic_alarm(engine, alarm_id, rule)
+      Enum.reduce(managed_alarms, engine, fn {alarm_id, rule}, engine ->
+        Engine.add_managed_alarm(engine, alarm_id, rule)
       end)
 
     engine = commit_side_effects(engine)
@@ -122,20 +122,20 @@ defmodule Alarmist.Handler do
   end
 
   @impl :gen_event
-  def handle_call({:add_synthetic_alarm, alarm_id, compiled_rules}, state) do
-    engine = Engine.add_synthetic_alarm(state.engine, alarm_id, compiled_rules)
+  def handle_call({:add_managed_alarm, alarm_id, compiled_rules}, state) do
+    engine = Engine.add_managed_alarm(state.engine, alarm_id, compiled_rules)
     engine = commit_side_effects(engine)
     {:ok, :ok, %{state | engine: engine}}
   end
 
-  def handle_call({:remove_synthetic_alarm, alarm_id}, state) do
-    engine = Engine.remove_synthetic_alarm(state.engine, alarm_id)
+  def handle_call({:remove_managed_alarm, alarm_id}, state) do
+    engine = Engine.remove_managed_alarm(state.engine, alarm_id)
     engine = commit_side_effects(engine)
     {:ok, :ok, %{state | engine: engine}}
   end
 
-  def handle_call(:synthetic_alarm_ids, state) do
-    alarm_ids = Engine.synthetic_alarm_ids(state.engine)
+  def handle_call(:managed_alarm_ids, state) do
+    alarm_ids = Engine.managed_alarm_ids(state.engine)
     {:ok, alarm_ids, state}
   end
 
