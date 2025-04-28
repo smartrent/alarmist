@@ -49,29 +49,20 @@ defmodule Integration.BooleanTest do
   end
 
   test "not not" do
-    # This is a simple way of exercising an intermediate alarm that defaults to set
-    defmodule NotNotAlarm do
-      use Alarmist.Alarm
-
-      alarm_if do
-        not not AlarmId1
-      end
-    end
-
     Alarmist.subscribe(NotNotAlarm)
     refute_received _
 
     Alarmist.add_managed_alarm(NotNotAlarm)
     refute_received _
 
-    :alarm_handler.set_alarm({AlarmId1, nil})
+    :alarm_handler.set_alarm({NotNotTriggerAlarm, nil})
 
     assert_receive %Alarmist.Event{
       id: NotNotAlarm,
       state: :set
     }
 
-    :alarm_handler.clear_alarm(AlarmId1)
+    :alarm_handler.clear_alarm(NotNotTriggerAlarm)
 
     assert_receive %Alarmist.Event{
       id: NotNotAlarm,

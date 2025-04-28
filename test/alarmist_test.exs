@@ -22,6 +22,7 @@ defmodule AlarmistTest do
     assert_receive %Alarmist.Event{
                      id: TestAlarm,
                      state: :set,
+                     level: :warning,
                      previous_state: previous_state
                    }
                    when previous_state in [:unknown, :clear]
@@ -156,6 +157,114 @@ defmodule AlarmistTest do
     :alarm_handler.clear_alarm(IdentityTriggerAlarm)
     Alarmist.remove_managed_alarm(IdentityAlarm)
     assert Alarmist.managed_alarm_ids() == []
+  end
+
+  describe "Alarmist.get_alarms/1" do
+    test "get alarms by severity" do
+      Alarmist.add_managed_alarm(ErrorAlarm)
+      Alarmist.add_managed_alarm(WarningAlarm)
+      Alarmist.add_managed_alarm(InfoAlarm)
+      Alarmist.add_managed_alarm(DebugAlarm)
+
+      Alarmist.subscribe(ErrorAlarm)
+
+      # Trigger all alarms
+      :alarm_handler.set_alarm({RootSeverityAlarm, nil})
+      assert_receive %Alarmist.Event{id: ErrorAlarm, state: :set, level: :error}
+
+      # Check the default
+      assert {InfoAlarm, nil} in Alarmist.get_alarms()
+      assert {WarningAlarm, nil} in Alarmist.get_alarms()
+      assert {ErrorAlarm, nil} in Alarmist.get_alarms()
+      refute {DebugAlarm, nil} in Alarmist.get_alarms()
+
+      assert {DebugAlarm, nil} in Alarmist.get_alarms(level: :debug)
+      assert {InfoAlarm, nil} in Alarmist.get_alarms(level: :debug)
+      assert {WarningAlarm, nil} in Alarmist.get_alarms(level: :debug)
+      assert {ErrorAlarm, nil} in Alarmist.get_alarms(level: :debug)
+
+      assert {WarningAlarm, nil} in Alarmist.get_alarms(level: :warning)
+      assert {ErrorAlarm, nil} in Alarmist.get_alarms(level: :warning)
+      refute {InfoAlarm, nil} in Alarmist.get_alarms(level: :warning)
+      refute {DebugAlarm, nil} in Alarmist.get_alarms(level: :warning)
+
+      assert {ErrorAlarm, nil} in Alarmist.get_alarms(level: :error)
+      refute {WarningAlarm, nil} in Alarmist.get_alarms(level: :error)
+      refute {InfoAlarm, nil} in Alarmist.get_alarms(level: :error)
+      refute {DebugAlarm, nil} in Alarmist.get_alarms(level: :error)
+
+      :alarm_handler.clear_alarm(RootSeverityAlarm)
+      assert_receive %Alarmist.Event{id: ErrorAlarm, state: :clear, level: :error}
+
+      refute {DebugAlarm, nil} in Alarmist.get_alarms(level: :debug)
+      refute {InfoAlarm, nil} in Alarmist.get_alarms(level: :debug)
+      refute {WarningAlarm, nil} in Alarmist.get_alarms(level: :debug)
+      refute {ErrorAlarm, nil} in Alarmist.get_alarms(level: :debug)
+
+      Alarmist.remove_managed_alarm(ErrorAlarm)
+      Alarmist.remove_managed_alarm(WarningAlarm)
+      Alarmist.remove_managed_alarm(InfoAlarm)
+      Alarmist.remove_managed_alarm(DebugAlarm)
+    end
+
+    test "intermediate alarms have debug severity" do
+      Alarmist.add_managed_alarm(NotNotAlarm)
+
+      # There's an intermediate alarm that should trigger right away
+      assert [] == Alarmist.get_alarms(level: :info)
+      assert [{:"Elixir.NotNotAlarm.0", nil}] == Alarmist.get_alarms(level: :debug)
+
+      Alarmist.remove_managed_alarm(NotNotAlarm)
+    end
+  end
+
+  describe "Alarmist.get_alarm_ids/1" do
+    test "get alarms by severity" do
+      Alarmist.add_managed_alarm(ErrorAlarm)
+      Alarmist.add_managed_alarm(WarningAlarm)
+      Alarmist.add_managed_alarm(InfoAlarm)
+      Alarmist.add_managed_alarm(DebugAlarm)
+
+      Alarmist.subscribe(ErrorAlarm)
+
+      # Trigger all alarms
+      :alarm_handler.set_alarm({RootSeverityAlarm, nil})
+      assert_receive %Alarmist.Event{id: ErrorAlarm, state: :set, level: :error}
+
+      # Check the default
+      assert InfoAlarm in Alarmist.get_alarm_ids()
+      assert WarningAlarm in Alarmist.get_alarm_ids()
+      assert ErrorAlarm in Alarmist.get_alarm_ids()
+      refute DebugAlarm in Alarmist.get_alarm_ids()
+
+      assert DebugAlarm in Alarmist.get_alarm_ids(level: :debug)
+      assert InfoAlarm in Alarmist.get_alarm_ids(level: :debug)
+      assert WarningAlarm in Alarmist.get_alarm_ids(level: :debug)
+      assert ErrorAlarm in Alarmist.get_alarm_ids(level: :debug)
+
+      assert WarningAlarm in Alarmist.get_alarm_ids(level: :warning)
+      assert ErrorAlarm in Alarmist.get_alarm_ids(level: :warning)
+      refute InfoAlarm in Alarmist.get_alarm_ids(level: :warning)
+      refute DebugAlarm in Alarmist.get_alarm_ids(level: :warning)
+
+      assert ErrorAlarm in Alarmist.get_alarm_ids(level: :error)
+      refute WarningAlarm in Alarmist.get_alarm_ids(level: :error)
+      refute InfoAlarm in Alarmist.get_alarm_ids(level: :error)
+      refute DebugAlarm in Alarmist.get_alarm_ids(level: :error)
+
+      :alarm_handler.clear_alarm(RootSeverityAlarm)
+      assert_receive %Alarmist.Event{id: ErrorAlarm, state: :clear, level: :error}
+
+      refute DebugAlarm in Alarmist.get_alarm_ids(level: :debug)
+      refute InfoAlarm in Alarmist.get_alarm_ids(level: :debug)
+      refute WarningAlarm in Alarmist.get_alarm_ids(level: :debug)
+      refute ErrorAlarm in Alarmist.get_alarm_ids(level: :debug)
+
+      Alarmist.remove_managed_alarm(ErrorAlarm)
+      Alarmist.remove_managed_alarm(WarningAlarm)
+      Alarmist.remove_managed_alarm(InfoAlarm)
+      Alarmist.remove_managed_alarm(DebugAlarm)
+    end
   end
 
   test "ignores unsupported alarms" do

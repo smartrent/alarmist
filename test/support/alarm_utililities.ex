@@ -18,7 +18,7 @@ defmodule AlarmUtilities do
   @spec assert_clean_state() :: :ok
   def assert_clean_state() do
     assert Alarmist.managed_alarm_ids() == []
-    assert Alarmist.get_alarms() == []
+    assert Alarmist.get_alarms(level: :debug) == []
 
     refute_receive %Alarmist.Event{}
 

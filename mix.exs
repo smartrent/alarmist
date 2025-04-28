@@ -9,7 +9,7 @@ defmodule Alarmist.MixProject do
     [
       app: :alarmist,
       version: @version,
-      elixir: "~> 1.15",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       description: @description,
       package: package(),

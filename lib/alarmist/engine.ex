@@ -13,8 +13,8 @@ defmodule Alarmist.Engine do
 
   @typedoc false
   @type action() ::
-          {:set, Alarmist.alarm_id(), Alarmist.alarm_description()}
-          | {:clear, Alarmist.alarm_id()}
+          {:set, Alarmist.alarm_id(), Alarmist.alarm_description(), Logger.level()}
+          | {:clear, Alarmist.alarm_id(), Alarmist.alarm_description(), Logger.level()}
           | {:start_timer, Alarmist.alarm_id(), pos_integer(), Alarmist.alarm_state(),
              reference()}
           | {:cancel_timer, reference()}
@@ -25,6 +25,7 @@ defmodule Alarmist.Engine do
 
   defstruct [
     :registered_conditions,
+    :alarm_levels,
     :alarm_id_to_rules,
     :cache,
     :changed_alarm_ids,
@@ -36,6 +37,7 @@ defmodule Alarmist.Engine do
 
   @typedoc """
   * `:registered_conditions` - map of alarm_id to its compiled form
+  * `:alarm_levels` - map of alarm_id to its severity
   * `:alarm_id_to_rules` - map of alarm_id to the list of rules to evaluate (inverse of `:registered_rules`)
   * `:cache` - temporary cache for alarm status while processing rules
   * `:changed_alarm_id` - list of alarm_ids that have changed values
@@ -47,6 +49,7 @@ defmodule Alarmist.Engine do
   """
   @type t() :: %__MODULE__{
           registered_conditions: %{Alarmist.alarm_id() => Alarmist.compiled_condition()},
+          alarm_levels: %{Alarmist.alarm_id() => Logger.level()},
           alarm_id_to_rules: %{Alarmist.alarm_id() => [Compiler.rule()]},
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
@@ -60,6 +63,7 @@ defmodule Alarmist.Engine do
   def init(lookup_fun) do
     %__MODULE__{
       registered_conditions: %{},
+      alarm_levels: %{},
       alarm_id_to_rules: %{},
       cache: %{},
       changed_alarm_ids: [],
@@ -123,8 +127,8 @@ defmodule Alarmist.Engine do
     acc
   end
 
-  defp to_token({:set, alarm_id, _}), do: {:state, alarm_id}
-  defp to_token({:clear, alarm_id, _}), do: {:state, alarm_id}
+  defp to_token({:set, alarm_id, _, _}), do: {:state, alarm_id}
+  defp to_token({:clear, alarm_id, _, _}), do: {:state, alarm_id}
   defp to_token({:start_timer, alarm_id, _timeout, _value, _timer_id}), do: {:timer, alarm_id}
   defp to_token({:cancel_timer, alarm_id}), do: {:timer, alarm_id}
 
@@ -176,10 +180,16 @@ defmodule Alarmist.Engine do
     end
   end
 
-  defp register_condition(engine, alarm_id, compiled_condition) do
+  defp register_condition(engine, alarm_id, condition) do
+    # Temporary alarms are always debug level
+    new_levels =
+      [{alarm_id, alarm_id.__alarm_level__()} | Enum.map(condition.temporaries, &{&1, :debug})]
+      |> Map.new()
+
     %{
       engine
-      | registered_conditions: Map.put(engine.registered_conditions, alarm_id, compiled_condition)
+      | registered_conditions: Map.put(engine.registered_conditions, alarm_id, condition),
+        alarm_levels: Map.merge(engine.alarm_levels, new_levels)
     }
   end
 
@@ -237,10 +247,13 @@ defmodule Alarmist.Engine do
         Map.delete(acc, alarm_id)
       end)
 
+    new_levels = Map.drop(engine.alarm_levels, alarm_ids_to_clear)
+
     new_engine =
       %{
         engine
         | registered_conditions: new_registered_conditions,
+          alarm_levels: new_levels,
           alarm_id_to_rules: new_alarm_id_to_rules,
           states: new_states
       }
@@ -274,9 +287,18 @@ defmodule Alarmist.Engine do
 
       :error ->
         value = engine.lookup_fun.(alarm_id)
-        new_cache = Map.put(engine.cache, alarm_id, value)
-        {%{engine | cache: new_cache}, value}
+
+        {put_cache(engine, alarm_id, value), value}
     end
+  end
+
+  defp put_cache(engine, alarm_id, value) when tuple_size(value) == 2 do
+    new_cache = Map.put(engine.cache, alarm_id, value)
+    %{engine | cache: new_cache}
+  end
+
+  defp put_cache(_engine, alarm_id, value) do
+    raise "Invalid cache value for #{inspect(alarm_id)}: #{inspect(value)}"
   end
 
   @doc """
@@ -288,18 +310,19 @@ defmodule Alarmist.Engine do
           t()
   def cache_put(engine, alarm_id, alarm_state, description) do
     {engine, current_state} = cache_get(engine, alarm_id)
+    level = Map.get(engine.alarm_levels, alarm_id, :warning)
 
     case {current_state, alarm_state} do
       {{from_state, _}, to_state} when from_state != to_state ->
         new_cache = Map.put(engine.cache, alarm_id, {to_state, description})
         new_changed = [alarm_id | engine.changed_alarm_ids]
 
-        new_actions_r = [{to_state, alarm_id, description} | engine.actions_r]
+        new_actions_r = [{to_state, alarm_id, description, level} | engine.actions_r]
 
         %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
 
       {{:set, _}, :set} ->
-        new_actions_r = [{:set, alarm_id, description} | engine.actions_r]
+        new_actions_r = [{:set, alarm_id, description, level} | engine.actions_r]
         %{engine | actions_r: new_actions_r}
 
       {{:clear, _}, :clear} ->

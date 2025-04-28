@@ -18,6 +18,10 @@ defmodule Alarmist.Alarm do
   end
   ```
 
+  The following options can be passed to `use Alarmist.Alarm`:
+
+  * `:level` - the alarm severity. See `t:Logger.level/0`. Defaults to `:warning`.
+
   See `Alarmist.Ops` for what operations can be included in `alarm_if` block.
   """
 
@@ -88,11 +92,27 @@ defmodule Alarmist.Alarm do
     end
   end
 
-  defmacro __using__(_options) do
+  defmacro __using__(options) do
+    level = Keyword.get(options, :level, :warning)
+
+    if level not in Logger.levels() do
+      raise ArgumentError,
+            "Invalid level #{inspect(level)}. Must be one of #{inspect(Logger.levels())}"
+    end
+
     quote do
       @before_compile unquote(__MODULE__)
+      @alarmist_level unquote(level)
+
       Module.register_attribute(__MODULE__, :alarmist_alarm, [])
+
       import unquote(__MODULE__)
+
+      @doc false
+      @spec __alarm_level__() :: Logger.level()
+      def __alarm_level__() do
+        @alarmist_level
+      end
     end
   end
 

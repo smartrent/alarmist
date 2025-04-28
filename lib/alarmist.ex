@@ -71,6 +71,7 @@ defmodule Alarmist do
     id: TheAlarmId,
     state: :set,
     description: nil,
+    level: :warning,
     timestamp: -576460712978320952,
     previous_state: :unknown,
     previous_timestamp: -576460751417398083
@@ -116,26 +117,50 @@ defmodule Alarmist do
 
   This returns `{id, description}` tuples. Note that `Alarmist` normalizes
   alarms that were not set as 2-tuples so this may not match calls to
-  `:alarm_handler.set_alarm/1` exactly.
+  `:alarm_handler.set_alarm/1`.
+
+  Options:
+  * `:level` - filter alarms by severity. Defaults to `:info`.
   """
-  @spec get_alarms() :: [alarm()]
-  def get_alarms() do
+  @spec get_alarms(level: Logger.level()) :: [alarm()]
+  def get_alarms(options \\ []) do
+    level = Keyword.get(options, :level, :info)
+
     PropertyTable.get_all(Alarmist)
     |> Enum.flat_map(fn
-      {[alarm_id], {:set, description}} -> [{alarm_id, description}]
-      _ -> []
+      {[alarm_id], {:set, description, alarm_level}} ->
+        if Logger.compare_levels(alarm_level, level) == :lt do
+          []
+        else
+          [{alarm_id, description}]
+        end
+
+      _ ->
+        []
     end)
   end
 
   @doc """
   Return a list of all active alarm IDs
+
+  Options:
+  * `:level` - filter alarms by severity. Defaults to `:info`.
   """
-  @spec get_alarm_ids() :: [alarm_id()]
-  def get_alarm_ids() do
+  @spec get_alarm_ids(level: Logger.level()) :: [alarm_id()]
+  def get_alarm_ids(options \\ []) do
+    level = Keyword.get(options, :level, :info)
+
     PropertyTable.get_all(Alarmist)
     |> Enum.flat_map(fn
-      {[alarm_id], {:set, _description}} -> [alarm_id]
-      _ -> []
+      {[alarm_id], {:set, _description, alarm_level}} ->
+        if Logger.compare_levels(alarm_level, level) == :lt do
+          []
+        else
+          [alarm_id]
+        end
+
+      _ ->
+        []
     end)
   end
 

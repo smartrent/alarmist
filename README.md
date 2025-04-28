@@ -99,7 +99,38 @@ end
 In this example, `Alarmist` will set `MyNewAlarm` only when both
 `InterestingAlarm1` and `InterestingAlarm2` are set.
 
-The following sections describe the operators available for managed alarms.
+## Alarm options
+
+Alarmist provides the following options for managed alarms:
+
+* `:level` - the severity of the alarm
+
+### Alarm severity
+
+Alarmist supports labeling managed alarms with severity levels matching those
+in `t:Logger.level/0`. Alarms default to the `:warning` level and intermediate
+alarms created internally by Alarmist default to `:debug`.
+
+The following example shows how to set an alarm's severity.
+
+```elixir
+defmodule MyNewAlarm do
+  use Alarmist.Alarm, level: :info
+
+  alarm_if do
+    ...
+  end
+end
+```
+
+Alarmist includes the severity in alarm status change events and also lets you
+filter active alarms with `Alarmist.get_alarms/1` and
+`Alarmist.get_alarm_ids/1`.
+
+## Managed alarm operators
+
+Managed alarms defined with `alarm_if` support boolean operators and a few
+special purpose operators. The following sections document each of these.
 
 ### Identity
 
