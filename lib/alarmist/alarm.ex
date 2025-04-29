@@ -17,17 +17,6 @@ defmodule Alarmist.Alarm do
     end
   end
   ```
-
-  The following options can be passed to `use Alarmist.Alarm`:
-
-  * `:level` - the alarm severity. See `t:Logger.level/0`. Defaults to `:warning`.
-  * `:parameters` a list of atom keys that refine the scope of the alarm. For example, a networking alarm
-    might specify `[:ifname]` to indicate that the alarm pertains to a specific network interface.
-  * `:style` the alarm style when parameters are used. Defaults to `:tagged_tuple` to indicate that
-    alarms are tuples where the first element is the alarm type and the subsequent elements are the
-    parameters.
-
-  See `Alarmist.Ops` for what operations can be included in `alarm_if` block.
   """
 
   defp expand_expression(expr, caller) do
@@ -120,6 +109,18 @@ defmodule Alarmist.Alarm do
     end
   end
 
+  @doc """
+  Define a managed alarm
+
+  The following options can be passed to `use Alarmist.Alarm`:
+
+  * `:level` - the alarm severity. See `t:Logger.level/0`. Defaults to `:warning`.
+  * `:parameters` a list of atom keys that refine the scope of the alarm. For example, a networking alarm
+    might specify `[:ifname]` to indicate that the alarm pertains to a specific network interface.
+  * `:style` the alarm style when parameters are used. Defaults to `:tagged_tuple` to indicate that
+    alarms are tuples where the first element is the alarm type and the subsequent elements are the
+    parameters.
+  """
   defmacro __using__(options) do
     level = Keyword.get(options, :level, :warning)
 
@@ -198,6 +199,11 @@ defmodule Alarmist.Alarm do
     end
   end
 
+  @doc """
+  Define an alarm condition
+
+  See `Alarmist.Ops` for what operations can be included in `alarm_if` block.
+  """
   defmacro alarm_if(do: block) do
     expr_expanded = expand_expression(block, __CALLER__)
 

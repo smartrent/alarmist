@@ -3,15 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 defmodule Alarmist.Compiler do
-  @moduledoc """
-  Compiles managed alarm definitions into a list of rules
-  """
+  @moduledoc false
 
   import Alarmist, only: [is_alarm_id: 1]
-
-  @typedoc false
-  @type rule_spec() :: list()
-  @type rule() :: {module(), atom(), list()}
 
   defstruct [
     :temp_counter,
@@ -23,8 +17,8 @@ defmodule Alarmist.Compiler do
     :options
   ]
 
-  @spec compile(Alarmist.alarm_type(), rule_spec(), map()) :: Alarmist.compiled_condition()
-  def compile(alarm_type, rule_spec, options) do
+  @spec compile(Alarmist.alarm_type(), [Alarmist.rule()], map()) :: Alarmist.compiled_condition()
+  def compile(alarm_type, input_rules, options) do
     result_alarm_id = alarm_type_to_id_form(alarm_type, options)
 
     state = %__MODULE__{
@@ -37,7 +31,7 @@ defmodule Alarmist.Compiler do
       options: options
     }
 
-    {state, last_alarm_id} = do_compile(state, rule_spec)
+    {state, last_alarm_id} = do_compile(state, input_rules)
     state = %{state | aliases: Map.put(state.aliases, last_alarm_id, result_alarm_id)}
     state = resolve_aliases(state)
 

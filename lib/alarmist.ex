@@ -12,7 +12,6 @@ defmodule Alarmist do
   It also provides a DSL for defining alarms based on other alarms. See
   `Alarmist.Alarm`.
   """
-  alias Alarmist.Compiler
   alias Alarmist.Handler
 
   # SASL doesn't export types for these so create them here
@@ -74,14 +73,23 @@ defmodule Alarmist do
   """
   @type alarm_state() :: :set | :clear
 
+  @opaque rule() :: {module(), atom(), list()}
   @type compiled_condition() :: %{
-          rules: [Compiler.rule()],
+          rules: [rule()],
           temporaries: [alarm_id()],
           options: map()
         }
 
+  @typedoc """
+  Patterns for alarm subscriptions
+
+  Patterns can be exact matches or use `:_` to match any value in a position.
+  """
   @type alarm_pattern() ::
-          alarm_type() | :_ | {alarm_type(), :_} | {alarm_type(), {:_, atom()}} | {:_, :_}
+          alarm_type()
+          | :_
+          | {alarm_type() | :_, any() | :_}
+          | {alarm_type() | :_, any() | :_, any() | :_}
 
   @doc """
   Subscribe to alarm status events

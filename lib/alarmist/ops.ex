@@ -4,9 +4,11 @@
 #
 defmodule Alarmist.Ops do
   @moduledoc """
-  Derivative alarm generation operations
+  Alarm operations for use with `alarm_if`
   """
   alias Alarmist.Engine
+
+  @opaque engine() :: Engine.t()
 
   @doc """
   Replicate an alarm status
@@ -28,7 +30,7 @@ defmodule Alarmist.Ops do
   end
   ```
   """
-  @spec copy(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
+  @spec copy(engine(), [Alarmist.alarm_id()]) :: engine()
   def copy(engine, [output, input]) do
     {engine, {state, description}} = Engine.cache_get(engine, input)
     Engine.cache_put(engine, output, state, description)
@@ -52,7 +54,7 @@ defmodule Alarmist.Ops do
   end
   ```
   """
-  @spec logical_not(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
+  @spec logical_not(engine(), [Alarmist.alarm_id()]) :: engine()
   def logical_not(engine, [output, input]) do
     {engine, {state, _description}} = Engine.cache_get(engine, input)
 
@@ -81,7 +83,7 @@ defmodule Alarmist.Ops do
   end
   ```
   """
-  @spec logical_and(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
+  @spec logical_and(engine(), [Alarmist.alarm_id()]) :: engine()
   def logical_and(engine, [output | inputs]) do
     {engine, value} = do_logical_and(engine, inputs)
     Engine.cache_put(engine, output, value, nil)
@@ -109,7 +111,6 @@ defmodule Alarmist.Ops do
   no great remediation other than reboot. This allows a handler to register for
   a combined alarm so that it's decoupled from the alarms that trigger it.
 
-
   Example:
 
   ```elixir
@@ -122,7 +123,7 @@ defmodule Alarmist.Ops do
   end
   ```
   """
-  @spec logical_or(Engine.t(), [Alarmist.alarm_id()]) :: Engine.t()
+  @spec logical_or(engine(), [Alarmist.alarm_id()]) :: engine()
   def logical_or(engine, [output | inputs]) do
     {engine, value} = do_logical_or(engine, inputs)
     Engine.cache_put(engine, output, value, nil)
@@ -173,7 +174,7 @@ defmodule Alarmist.Ops do
   end
   ```
   """
-  @spec debounce(Engine.t(), [Alarmist.alarm_id(), ...]) :: Engine.t()
+  @spec debounce(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def debounce(engine, [output, input, timeout]) do
     {engine, value} = Engine.cache_get(engine, input)
 
@@ -214,7 +215,7 @@ defmodule Alarmist.Ops do
   end
   ```
   """
-  @spec hold(Engine.t(), [Alarmist.alarm_id(), ...]) :: Engine.t()
+  @spec hold(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def hold(engine, [output, input, timeout]) do
     {engine, value} = Engine.cache_get(engine, input)
 
@@ -258,8 +259,7 @@ defmodule Alarmist.Ops do
   end
   ```
   """
-  @spec intensity(Engine.t(), [Alarmist.alarm_id(), ...]) ::
-          Engine.t()
+  @spec intensity(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def intensity(engine, [output, input, count, duration]) do
     {engine, value} = Engine.cache_get(engine, input)
 

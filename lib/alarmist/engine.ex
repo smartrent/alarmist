@@ -3,15 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 defmodule Alarmist.Engine do
-  @moduledoc """
-  Managed alarm processing engine
-
-  This module is intended for users extending the Alarmist DSL.
-  """
+  @moduledoc false
 
   import Alarmist, only: [is_alarm_id: 1]
-
-  alias Alarmist.Compiler
 
   @typedoc false
   @type action() ::
@@ -52,7 +46,7 @@ defmodule Alarmist.Engine do
   @type t() :: %__MODULE__{
           registered_conditions: %{Alarmist.alarm_id() => Alarmist.compiled_condition()},
           alarm_levels: %{Alarmist.alarm_id() => Logger.level()},
-          alarm_id_to_rules: %{Alarmist.alarm_id() => [Compiler.rule()]},
+          alarm_id_to_rules: %{Alarmist.alarm_id() => [Alarmist.rule()]},
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
           timers: map(),
