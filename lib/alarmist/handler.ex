@@ -27,11 +27,6 @@ defmodule Alarmist.Handler do
     :gen_event.call(:alarm_handler, __MODULE__, :managed_alarm_ids)
   end
 
-  @spec get_state() :: Engine.t()
-  def get_state() do
-    :gen_event.call(:alarm_handler, __MODULE__, :get_state)
-  end
-
   @impl :gen_event
   def init(init_args) do
     # Handlers can be added or swapped:
@@ -138,10 +133,6 @@ defmodule Alarmist.Handler do
   def handle_call(:managed_alarm_ids, state) do
     alarm_ids = Engine.managed_alarm_ids(state.engine)
     {:ok, alarm_ids, state}
-  end
-
-  def handle_call(:get_state, state) do
-    {:ok, state.engine, state}
   end
 
   # defp run_side_effects(state, actions) do
