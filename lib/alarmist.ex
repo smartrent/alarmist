@@ -91,6 +91,13 @@ defmodule Alarmist do
           | {alarm_type() | :_, any() | :_}
           | {alarm_type() | :_, any() | :_, any() | :_}
 
+  @typedoc "See `Alarmist.info/1`"
+  @type info_options() :: [
+          level: Logger.level(),
+          sort: :level | :alarm_id | :duration,
+          ansi_enabled?: boolean()
+        ]
+
   @doc """
   Subscribe to alarm status events
 
@@ -285,5 +292,20 @@ defmodule Alarmist do
   @spec managed_alarm_ids() :: [alarm_id()]
   def managed_alarm_ids() do
     Handler.managed_alarm_ids()
+  end
+
+  @doc """
+  Print alarm status in a nice table
+
+  Options:
+  * `:level` - filter alarms by severity. Defaults to `:info`.
+  * `:sort` - `:level`, `:alarm_id`, or `:duration`. Defaults to `:level`.
+  * `:ansi_enabled?` - override the default ANSI setting. Defaults to `true`.
+  """
+  @spec info(info_options()) :: :ok
+  def info(options \\ []) do
+    alarms = PropertyTable.get_all_with_timestamps(Alarmist)
+
+    Alarmist.Info.info(alarms, options)
   end
 end
