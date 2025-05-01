@@ -14,18 +14,31 @@ alarms. Only the end user's application need depend on Alarmist.
 ## What are alarms
 
 Alarms are different from events. While events can convey any information, an
-alarm conveys a boolean state. The alarm can either be `set` or `clear`. Code
-should always be able to know the state of the alarm. With events, you either
-get the event or not. There may be ways of obtaining the event when it's
-missed, but with alarms there's an expectation that the alarm state is always
-accessible.
+alarm conveys a boolean state. The alarm can either be `set` or `clear`. At it's
+core, here are the calls:
 
-Erlang's Alarm Handler allows code that sets alarms to include supplementary
-information called `AlarmDescription`. This is purely informational. If an
-alarm is set more than once, only the latest description is available. It is
-not useful for differentiating alarms. For example, a network disconnected
-alarm should incorporate the network interface name (`eth0`) into the `AlarmId`
-rather than the `AlarmDescription`.
+```elixir
+iex> :alarm_handler.set_alarm({SomethingIsWrong, "Some optional description"})
+
+# Sometime later when Something is no longer wrong.
+iex> :alarm_handler.clear_alarm(SomethingIsWrong)
+```
+
+When you're at the IEx prompt, you can see the current alarm state in a few ways, but an easy way is to run `Alarmist.info/1`:
+
+```elixir
+iex> Alarmist.info
+   SEVERITY  ALARM ID          DURATION  DESCRIPTION
+⚠️ Warning   SomethingIsWrong  12s       "Some optional description"
+```
+
+Likewise, code should always be able to know the state of the alarm. If your
+code started after the event was sent, then it would be missed. Of course,
+you can work around this, but with alarms there's an expectation that the alarm
+state is always accessible.
+
+Alarmist builds on this and can build off alarms you have to make new ones that
+summarize or reflect actual situations of concern.
 
 ## When to use alarms
 
