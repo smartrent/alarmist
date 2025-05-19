@@ -5,8 +5,6 @@
 defmodule Alarmist.Info do
   @moduledoc false
 
-  alias Alarmist.Tablet
-
   @typedoc """
   Row contents from `tabular_info/2`
 
