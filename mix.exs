@@ -78,6 +78,7 @@ defmodule Alarmist.MixProject do
   defp deps do
     [
       {:property_table, "~> 0.3.1"},
+      {:tablet, "~> 0.1.0"},
       {:ex_doc, "~> 0.27", only: :docs, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
