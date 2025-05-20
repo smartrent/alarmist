@@ -214,6 +214,13 @@ defmodule Alarmist do
   """
   @spec add_managed_alarm(alarm_id()) :: :ok
   def add_managed_alarm(alarm_id) when is_alarm_id(alarm_id) do
+    condition = resolve_managed_alarm_condition(alarm_id)
+    Handler.add_managed_alarm(alarm_id, condition)
+  end
+
+  @doc false
+  @spec resolve_managed_alarm_condition(alarm_id()) :: compiled_condition()
+  def resolve_managed_alarm_condition(alarm_id) when is_alarm_id(alarm_id) do
     alarm_type = alarm_type(alarm_id)
 
     if not (Code.ensure_loaded(alarm_type) == {:module, alarm_type}) or
@@ -224,8 +231,7 @@ defmodule Alarmist do
 
     params = alarm_type.__alarm_parameters__(alarm_id)
 
-    condition = instantiate_alarm_conditions(alarm_type, params)
-    Handler.add_managed_alarm(alarm_id, condition)
+    instantiate_alarm_conditions(alarm_type, params)
   end
 
   defp instantiate_alarm_conditions(alarm_type, params) do

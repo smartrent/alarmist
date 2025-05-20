@@ -51,17 +51,23 @@ defmodule Alarmist.Handler do
         Engine.cache_put(engine, alarm_id, :set, description)
       end)
 
-    # Load the rules.
+    # Load the managed alarms
     managed_alarms = Keyword.get(options, :managed_alarms, [])
 
     engine =
-      Enum.reduce(managed_alarms, engine, fn {alarm_id, rule}, engine ->
-        Engine.add_managed_alarm(engine, alarm_id, rule)
-      end)
-
-    engine = commit_side_effects(engine)
+      Enum.reduce(managed_alarms, engine, &safe_add_alarm/2)
+      |> commit_side_effects()
 
     {:ok, %{engine: engine}}
+  end
+
+  defp safe_add_alarm(alarm_id, engine) do
+    condition = Alarmist.resolve_managed_alarm_condition(alarm_id)
+    Engine.add_managed_alarm(engine, alarm_id, condition)
+  rescue
+    e ->
+      Logger.error("Failed to add managed alarm #{inspect(alarm_id)}: #{inspect(e)}")
+      engine
   end
 
   defp lookup(alarm_id) do

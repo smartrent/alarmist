@@ -348,6 +348,20 @@ iex> flush
 }
 ```
 
+## Configuration via the application environment
+
+It's possible to define managed alarms to add when the Alarmist application
+starts. This has some convenience if you'd prefer to list all managed alarms in
+your `config.exs` rather than distribute their registration to runtime.
+
+```elixir
+config :alarmist,
+  managed_alarms: [FirstManagedAlarm, SecondManagedAlarm]
+```
+
+When Alarmist starts, it will force those modules to be loaded. Alarmist skips
+any alarm modules that have issues and just logs an error.
+
 ## License
 
 Alarmist is licensed under the Apache License, Version 2.0.
