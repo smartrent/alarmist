@@ -149,6 +149,37 @@ defmodule AlarmistTest do
     :ok
   end
 
+  test "adding managed alarms via application environment" do
+    _ =
+      capture_log(fn ->
+        Application.stop(:alarmist)
+        Application.put_env(:alarmist, :managed_alarms, [IdentityAlarm])
+        Application.start(:alarmist)
+
+        assert Alarmist.managed_alarm_ids() == [IdentityAlarm]
+
+        Application.delete_env(:alarmist, :managed_alarms)
+        Alarmist.remove_managed_alarm(IdentityAlarm)
+      end)
+
+    :ok
+  end
+
+  test "adding an invalid managed alarm logs a warning via application environment" do
+    log =
+      capture_log(fn ->
+        Application.stop(:alarmist)
+        Application.put_env(:alarmist, :managed_alarms, [DoesNotExistAlarm])
+        Application.start(:alarmist)
+
+        assert Alarmist.managed_alarm_ids() == []
+
+        Application.delete_env(:alarmist, :managed_alarms)
+      end)
+
+    assert log =~ "Failed to add managed alarm DoesNotExistAlarm"
+  end
+
   test "adding an alarm many times" do
     Alarmist.subscribe(IdentityAlarm)
     :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
