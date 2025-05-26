@@ -50,9 +50,20 @@ defmodule Alarmist.Info do
     column_widths = Tablet.compute_column_widths(data_rows, options)
 
     [
-      Tablet.render(set_rows, options ++ [name: "Set Alarms", column_widths: column_widths]),
+      Tablet.render(
+        set_rows,
+        Keyword.merge(options, name: "Set Alarms", column_widths: column_widths)
+      ),
       "\n",
-      Tablet.render(clear_rows, options ++ [name: "Cleared Alarms", column_widths: column_widths])
+      Tablet.render(
+        clear_rows,
+        Keyword.merge(
+          options,
+          name: "Cleared Alarms",
+          formatter: &clear_formatter(&1, &2, formatter_options),
+          column_widths: column_widths
+        )
+      )
     ]
     |> IO.ANSI.format(Keyword.get_lazy(options, :ansi_enabled?, &IO.ANSI.enabled?/0))
     |> IO.puts()
@@ -68,14 +79,16 @@ defmodule Alarmist.Info do
     {:ok, format_timestamp(value, options)}
   end
 
-  defp formatter(:state, :set, _), do: {:ok, [:red, "Set", :default_color]}
-  defp formatter(:state, :clear, _), do: {:ok, [:crossed_out, :green, "Clr", :default_color]}
   defp formatter(:level, level, _), do: {:ok, level_text(level)}
 
   defp formatter(:alarm_id, alarm_id, _),
     do: {:ok, [:light_white, inspect(alarm_id), :default_color]}
 
   defp formatter(_, _, _), do: :default
+
+  # Replace `:reset` when Elixir supports `:not_crossed_out`.
+  defp clear_formatter(:level, v, _), do: {:ok, [:crossed_out, level_text(v), :reset]}
+  defp clear_formatter(k, v, options), do: formatter(k, v, options)
 
   @spec tabular_info([tuple()], Alarmist.info_options()) :: [row()]
   def tabular_info(alarms, options) do

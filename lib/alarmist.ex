@@ -202,6 +202,48 @@ defmodule Alarmist do
   end
 
   @doc """
+  Set or change the alarm level for an alarm
+
+  The alarm can be either for a managed or unmanaged alarm. Once set, that
+  alarm will be reported with the specified level.
+
+  While this can be used with managed alarms, you should normally pass the
+  desired level as an option to `use Alarmist.Alarm` so that it's handled for
+  you.
+
+  It's also possible to set levels for unmanaged alarms in the application
+  configuration:
+
+  ```elixir
+  config :alarmist, alarm_levels: %{MyUnmanagedAlarm => :critical}
+  ```
+
+  NOTE: Changing the alarm level does not change the status of existing alarms
+  since there's no mechanism to go back in time and change reports. Future
+  events will be reported with the new level.
+  """
+  @spec set_alarm_level(alarm_id(), Logger.level()) :: :ok
+  def set_alarm_level(alarm_id, level) when is_alarm_id(alarm_id) do
+    if level not in Logger.levels() do
+      raise ArgumentError,
+            "Invalid level #{inspect(level)}. Must be one of #{inspect(Logger.levels())}"
+    end
+
+    Handler.set_alarm_level(alarm_id, level)
+  end
+
+  @doc """
+  Clear knowledge of an alarm's level
+
+  If the alarm gets reported after this call, it will be assigned the default
+  alarm level, `:warning`.
+  """
+  @spec clear_alarm_level(alarm_id()) :: :ok
+  def clear_alarm_level(alarm_id) when is_alarm_id(alarm_id) do
+    Handler.clear_alarm_level(alarm_id)
+  end
+
+  @doc """
   Add a managed alarm
 
   After this call, Alarmist will watch for alarms to be set based on the

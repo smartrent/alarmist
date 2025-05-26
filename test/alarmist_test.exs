@@ -194,6 +194,65 @@ defmodule AlarmistTest do
     assert log =~ "Failed to add managed alarm DoesNotExistAlarm"
   end
 
+  test "set alarm levels via application environment" do
+    _ =
+      capture_log(fn ->
+        Application.stop(:alarmist)
+        Application.put_env(:alarmist, :alarm_levels, %{a_test_alarm: :info})
+        Application.start(:alarmist)
+
+        Alarmist.subscribe(:a_test_alarm)
+        :alarm_handler.set_alarm({:a_test_alarm, nil})
+        assert_receive %Alarmist.Event{id: :a_test_alarm, state: :set, level: :info}
+
+        Application.delete_env(:alarmist, :alarm_levels)
+        Alarmist.unsubscribe(:a_test_alarm)
+        :alarm_handler.clear_alarm(:a_test_alarm)
+      end)
+
+    :ok
+  end
+
+  test "alarms set before starting are the expected level" do
+    _ =
+      capture_log(fn ->
+        Application.stop(:alarmist)
+        Application.stop(:sasl)
+        Application.start(:sasl)
+
+        :alarm_handler.set_alarm({:a_test_alarm, nil})
+
+        Application.put_env(:alarmist, :alarm_levels, %{a_test_alarm: :debug})
+        Application.start(:alarmist)
+        wait_for_started()
+
+        assert Alarmist.get_alarms(level: :debug) == [{:a_test_alarm, nil}]
+        assert Alarmist.get_alarms(level: :info) == []
+
+        Application.delete_env(:alarmist, :alarm_levels)
+        :alarm_handler.clear_alarm(:a_test_alarm)
+      end)
+
+    :ok
+  end
+
+  test "ignoring a bad alarm level option in the application environment" do
+    capture_log(fn ->
+      Application.stop(:alarmist)
+      Application.put_env(:alarmist, :managed_alarms, [IdentityAlarm])
+      Application.put_env(:alarmist, :alarm_levels, :oops)
+      Application.start(:alarmist)
+
+      assert Alarmist.managed_alarm_ids() == [IdentityAlarm]
+
+      Application.delete_env(:alarmist, :managed_alarms)
+      Application.delete_env(:alarmist, :alarm_levels)
+      Alarmist.remove_managed_alarm(IdentityAlarm)
+    end)
+
+    :ok
+  end
+
   test "adding an alarm many times" do
     Alarmist.subscribe(IdentityAlarm)
     :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
@@ -327,6 +386,94 @@ defmodule AlarmistTest do
       Alarmist.remove_managed_alarm(WarningAlarm)
       Alarmist.remove_managed_alarm(InfoAlarm)
       Alarmist.remove_managed_alarm(DebugAlarm)
+    end
+  end
+
+  describe "Alarmist.set_alarm_level/2" do
+    test "set unmanaged alarm's level" do
+      Alarmist.set_alarm_level(:test_alarm, :info)
+      Alarmist.subscribe(:test_alarm)
+
+      :alarm_handler.set_alarm({:test_alarm, nil})
+      assert_receive %Alarmist.Event{id: :test_alarm, state: :set, level: :info}
+
+      assert [:test_alarm] == Alarmist.get_alarm_ids(level: :info)
+
+      :alarm_handler.clear_alarm(:test_alarm)
+      assert_receive %Alarmist.Event{id: :test_alarm, state: :clear, level: :info}
+
+      Alarmist.unsubscribe(:test_alarm)
+      Alarmist.clear_alarm_level(:test_alarm)
+    end
+
+    test "setting a managed alarm's level overrides it" do
+      Alarmist.set_alarm_level(ErrorAlarm, :info)
+      Alarmist.subscribe(ErrorAlarm)
+      Alarmist.add_managed_alarm(ErrorAlarm)
+
+      :alarm_handler.set_alarm({RootSeverityAlarm, nil})
+
+      assert_receive %Alarmist.Event{id: ErrorAlarm, state: :set, level: :info}
+
+      Alarmist.unsubscribe(ErrorAlarm)
+      Alarmist.remove_managed_alarm(ErrorAlarm)
+      :alarm_handler.clear_alarm(RootSeverityAlarm)
+      Alarmist.clear_alarm_level(ErrorAlarm)
+    end
+
+    test "setting level doesn't change existing alarms" do
+      # See set_alarm_level/2 for why.
+      Alarmist.set_alarm_level(:test_alarm, :info)
+      Alarmist.subscribe(:test_alarm)
+
+      :alarm_handler.set_alarm({:test_alarm, nil})
+      assert_receive %Alarmist.Event{id: :test_alarm, state: :set, level: :info}
+
+      assert [:test_alarm] == Alarmist.get_alarm_ids(level: :info)
+      assert [] == Alarmist.get_alarm_ids(level: :warning)
+
+      Alarmist.set_alarm_level(:test_alarm, :debug)
+
+      # Sanity check that no events are sent since convenient
+      refute_receive _
+
+      assert [:test_alarm] == Alarmist.get_alarm_ids(level: :info)
+      assert [] == Alarmist.get_alarm_ids(level: :warning)
+
+      Alarmist.unsubscribe(:test_alarm)
+      :alarm_handler.clear_alarm(:test_alarm)
+      Alarmist.clear_alarm_level(:test_alarm)
+    end
+
+    test "raises on invalid level" do
+      assert_raise ArgumentError, fn ->
+        Alarmist.set_alarm_level(:test_alarm, :invalid_level)
+      end
+    end
+  end
+
+  describe "Alarmist.clear_alarm_level/1" do
+    test "clear resets alarm's level to the default" do
+      Alarmist.set_alarm_level(:test_alarm, :info)
+      Alarmist.subscribe(:test_alarm)
+      Alarmist.clear_alarm_level(:test_alarm)
+
+      :alarm_handler.set_alarm({:test_alarm, nil})
+      assert_receive %Alarmist.Event{id: :test_alarm, state: :set, level: :warning}
+
+      assert [:test_alarm] == Alarmist.get_alarm_ids(level: :warning)
+
+      :alarm_handler.clear_alarm(:test_alarm)
+      assert_receive %Alarmist.Event{id: :test_alarm, state: :clear, level: :warning}
+
+      Alarmist.unsubscribe(:test_alarm)
+    end
+
+    test "clearing multiple times works" do
+      Alarmist.clear_alarm_level(:test_alarm)
+      Alarmist.clear_alarm_level(:test_alarm)
+      Alarmist.clear_alarm_level(:test_alarm)
+      Alarmist.clear_alarm_level(:test_alarm)
     end
   end
 

@@ -357,7 +357,8 @@ your `config.exs` rather than distribute their registration to runtime.
 
 ```elixir
 config :alarmist,
-  managed_alarms: [FirstManagedAlarm, SecondManagedAlarm]
+  managed_alarms: [FirstManagedAlarm, SecondManagedAlarm],
+  alarm_levels: %{{:disk_almost_full, ~c"/"} => :debug}
 ```
 
 When Alarmist starts, it will force those modules to be loaded. Alarmist skips

@@ -25,6 +25,7 @@ defmodule Alarmist.Engine do
     :alarm_id_to_rules,
     :cache,
     :changed_alarm_ids,
+    :default_alarm_levels,
     :timers,
     :actions_r,
     :states,
@@ -49,6 +50,7 @@ defmodule Alarmist.Engine do
           alarm_id_to_rules: %{Alarmist.alarm_id() => [Alarmist.rule()]},
           cache: map,
           changed_alarm_ids: [Alarmist.alarm_id()],
+          default_alarm_levels: %{Alarmist.alarm_id() => Logger.level()},
           timers: map(),
           actions_r: [action()],
           states: map(),
@@ -63,6 +65,7 @@ defmodule Alarmist.Engine do
       alarm_id_to_rules: %{},
       cache: %{},
       changed_alarm_ids: [],
+      default_alarm_levels: %{},
       timers: %{},
       actions_r: [],
       states: %{},
@@ -187,7 +190,7 @@ defmodule Alarmist.Engine do
     %{
       engine
       | registered_conditions: Map.put(engine.registered_conditions, alarm_id, condition),
-        alarm_levels: Map.merge(engine.alarm_levels, new_levels)
+        default_alarm_levels: Map.merge(engine.default_alarm_levels, new_levels)
     }
   end
 
@@ -246,13 +249,13 @@ defmodule Alarmist.Engine do
           Map.delete(acc, alarm_id)
         end)
 
-      new_levels = Map.drop(engine.alarm_levels, alarm_ids_to_clear)
+      new_levels = Map.drop(engine.default_alarm_levels, alarm_ids_to_clear)
 
       new_engine =
         %{
           engine
           | registered_conditions: new_registered_conditions,
-            alarm_levels: new_levels,
+            default_alarm_levels: new_levels,
             alarm_id_to_rules: new_alarm_id_to_rules,
             states: new_states
         }
@@ -271,6 +274,16 @@ defmodule Alarmist.Engine do
   @spec managed_alarm_ids(t()) :: [Alarmist.alarm_id()]
   def managed_alarm_ids(engine) do
     Map.keys(engine.registered_conditions)
+  end
+
+  @spec set_alarm_level(t(), Alarmist.alarm_id(), Logger.level()) :: t()
+  def set_alarm_level(engine, alarm_id, level) do
+    %{engine | alarm_levels: Map.put(engine.alarm_levels, alarm_id, level)}
+  end
+
+  @spec clear_alarm_level(t(), Alarmist.alarm_id()) :: t()
+  def clear_alarm_level(engine, alarm_id) do
+    %{engine | alarm_levels: Map.delete(engine.alarm_levels, alarm_id)}
   end
 
   @doc false
@@ -306,7 +319,7 @@ defmodule Alarmist.Engine do
           t()
   def cache_put(engine, alarm_id, alarm_state, description) do
     {engine, current_state} = cache_get(engine, alarm_id)
-    level = Map.get(engine.alarm_levels, alarm_id, :warning)
+    level = engine.alarm_levels[alarm_id] || engine.default_alarm_levels[alarm_id] || :warning
 
     case {current_state, alarm_state} do
       {{from_state, _}, to_state} when from_state != to_state ->

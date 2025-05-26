@@ -34,6 +34,16 @@ defmodule Alarmist.Handler do
     gen_event_call(:alarm_handler, __MODULE__, :managed_alarm_ids)
   end
 
+  @spec set_alarm_level(Alarmist.alarm_id(), Logger.level()) :: :ok
+  def set_alarm_level(alarm_id, level) do
+    gen_event_call(:alarm_handler, __MODULE__, {:set_alarm_level, alarm_id, level})
+  end
+
+  @spec clear_alarm_level(Alarmist.alarm_id()) :: :ok
+  def clear_alarm_level(alarm_id) do
+    gen_event_call(:alarm_handler, __MODULE__, {:clear_alarm_level, alarm_id})
+  end
+
   defp gen_event_call(event_mgr_ref, handler, request, timeout \\ 5000) do
     with {:error, :bad_module} <- :gen_event.call(event_mgr_ref, handler, request, timeout) do
       new_timeout = maybe_sleep(handler, timeout)
@@ -67,21 +77,39 @@ defmodule Alarmist.Handler do
 
     engine = Engine.init(&lookup/1)
 
-    # Cache all of the existing alarms.
+    managed_alarms = Keyword.get(options, :managed_alarms, [])
+    alarm_levels = Keyword.get(options, :alarm_levels, %{})
+
+    # Initialize the engine
+    #
+    # 1. Set initial alarm severity levels (must be first so generated events are assigned correctly)
+    # 2. Cache alarms from before the handler was started (before managed alarm init to avoid extra work)
+    # 3. Add initial managed alarms
+    # 4. Commit all accumulated side effects
     engine =
-      Enum.reduce(existing_alarms, engine, fn {alarm_id, description}, engine ->
+      engine
+      |> engine_reduce(alarm_levels, fn {alarm_id, level}, engine ->
+        Engine.set_alarm_level(engine, alarm_id, level)
+      end)
+      |> engine_reduce(existing_alarms, fn {alarm_id, description}, engine ->
         Engine.cache_put(engine, alarm_id, :set, description)
       end)
-
-    # Load the managed alarms
-    managed_alarms = Keyword.get(options, :managed_alarms, [])
-
-    engine =
-      Enum.reduce(managed_alarms, engine, &safe_add_alarm/2)
+      |> engine_reduce(managed_alarms, fn alarm_id, engine ->
+        safe_add_alarm(alarm_id, engine)
+      end)
       |> commit_side_effects()
 
     {:ok, %{engine: engine}}
+  rescue
+    e ->
+      Logger.error("Unexpected error when initializing Alarmist.Handler: #{inspect(e)}")
+      {:error, e}
   end
+
+  defp engine_reduce(engine, items, fun) when is_list(items) or is_map(items),
+    do: Enum.reduce(items, engine, fun)
+
+  defp engine_reduce(engine, _items, _fun), do: engine
 
   defp safe_add_alarm(alarm_id, engine) do
     condition = Alarmist.resolve_managed_alarm_condition(alarm_id)
@@ -163,6 +191,16 @@ defmodule Alarmist.Handler do
   def handle_call(:managed_alarm_ids, state) do
     alarm_ids = Engine.managed_alarm_ids(state.engine)
     {:ok, alarm_ids, state}
+  end
+
+  def handle_call({:set_alarm_level, alarm_id, level}, state) do
+    engine = Engine.set_alarm_level(state.engine, alarm_id, level)
+    {:ok, :ok, %{state | engine: engine}}
+  end
+
+  def handle_call({:clear_alarm_level, alarm_id}, state) do
+    engine = Engine.clear_alarm_level(state.engine, alarm_id)
+    {:ok, :ok, %{state | engine: engine}}
   end
 
   @impl :gen_event
