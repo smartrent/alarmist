@@ -28,8 +28,9 @@ When you're at the IEx prompt, you can see the current alarm state in a few ways
 
 ```elixir
 iex> Alarmist.info
-   SEVERITY  ALARM ID          DURATION  DESCRIPTION
-⚠️ Warning   SomethingIsWrong  12s       "Some optional description"
+                                  Set Alarms
+SEVERITY  ALARM ID          LAST CHANGE               DESCRIPTION
+Warning   SomethingIsWrong  2025-05-26 20:08:48 (2s)  Some optional description
 ```
 
 Likewise, code should always be able to know the state of the alarm. If your
