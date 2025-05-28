@@ -14,19 +14,41 @@ defmodule Alarmist.Handler do
 
   require Logger
 
+  # If the alarm handler is not momentarily unavailable, this is how long to
+  # wait before retrying. This should be rare and is most likely for calls
+  # during application startup.
+  @handler_retry_interval 17
+
   @spec add_managed_alarm(Alarmist.alarm_id(), Alarmist.compiled_condition()) :: :ok
   def add_managed_alarm(alarm_id, compiled_rules) do
-    :gen_event.call(:alarm_handler, __MODULE__, {:add_managed_alarm, alarm_id, compiled_rules})
+    gen_event_call(:alarm_handler, __MODULE__, {:add_managed_alarm, alarm_id, compiled_rules})
   end
 
   @spec remove_managed_alarm(Alarmist.alarm_id()) :: :ok
   def remove_managed_alarm(alarm_id) do
-    :gen_event.call(:alarm_handler, __MODULE__, {:remove_managed_alarm, alarm_id})
+    gen_event_call(:alarm_handler, __MODULE__, {:remove_managed_alarm, alarm_id})
   end
 
   @spec managed_alarm_ids() :: [Alarmist.alarm_id()]
   def managed_alarm_ids() do
-    :gen_event.call(:alarm_handler, __MODULE__, :managed_alarm_ids)
+    gen_event_call(:alarm_handler, __MODULE__, :managed_alarm_ids)
+  end
+
+  defp gen_event_call(event_mgr_ref, handler, request, timeout \\ 5000) do
+    with {:error, :bad_module} <- :gen_event.call(event_mgr_ref, handler, request, timeout) do
+      new_timeout = maybe_sleep(handler, timeout)
+      gen_event_call(event_mgr_ref, handler, request, new_timeout)
+    end
+  end
+
+  defp maybe_sleep(_handler, timeout) when is_integer(timeout) and timeout > 0 do
+    Process.sleep(@handler_retry_interval)
+    timeout - @handler_retry_interval
+  end
+
+  defp maybe_sleep(handler, _timeout) do
+    raise RuntimeError,
+      message: "#{inspect(handler)} not found. Please ensure Alarmist is started before using it."
   end
 
   @impl :gen_event
@@ -141,6 +163,13 @@ defmodule Alarmist.Handler do
   def handle_call(:managed_alarm_ids, state) do
     alarm_ids = Engine.managed_alarm_ids(state.engine)
     {:ok, alarm_ids, state}
+  end
+
+  @impl :gen_event
+  def terminate(_args, _state) do
+    # Placeholder for cleanup and handler swapping logic. Currently, only the unit tests
+    # exercise this on purpose.
+    []
   end
 
   # defp run_side_effects(state, actions) do

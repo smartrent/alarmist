@@ -116,6 +116,20 @@ defmodule AlarmistTest do
     refute_receive _
   end
 
+  defp wait_for_started(timeout_ms \\ 5000) do
+    cond do
+      Alarmist.Handler in :gen_event.which_handlers(:alarm_handler) ->
+        :ok
+
+      timeout_ms <= 0 ->
+        raise RuntimeError, message: "Alarmist did not start in time"
+
+      true ->
+        Process.sleep(10)
+        wait_for_started(timeout_ms - 10)
+    end
+  end
+
   test "processing alarms before it starts" do
     _ =
       capture_log(fn ->
@@ -132,8 +146,8 @@ defmodule AlarmistTest do
 
         Application.start(:alarmist)
 
-        # Application starts asynchronously, so call a function to wait for it
-        _ = Alarmist.managed_alarm_ids()
+        # Must wait since Alarmist.get_alarms() can beat the Alarmist.Handler initialization
+        wait_for_started()
 
         alarms = Alarmist.get_alarms() |> Enum.sort()
 
