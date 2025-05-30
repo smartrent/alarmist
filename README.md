@@ -5,11 +5,11 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/smartrent/alarmist/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/smartrent/alarmist/tree/main)
 [![REUSE status](https://api.reuse.software/badge/github.com/smartrent/alarmist)](https://api.reuse.software/info/github.com/smartrent/alarmist)
 
-Alarmist extends Erlang's [Alarm
-Handler](https://www.erlang.org/doc/man/alarm_handler) to support
-subscriptions, conditional logic for triggering new alarms, and more. Alarmist
-aims to be unintrusive and supports existing conventions for naming and using
-alarms. Only the end user's application need depend on Alarmist.
+Alarmist builds on Erlang’s
+[alarm_handler](https://www.erlang.org/doc/man/alarm_handler) by adding support
+for subscriptions, conditional logic, and other advanced features. It is
+designed to be non-intrusive and adheres to existing conventions for naming and
+using alarms. Only the end user's application needs to depend on Alarmist.
 
 ## What are alarms
 
