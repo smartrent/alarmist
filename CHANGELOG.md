@@ -2,6 +2,50 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.3.0 - 2025-05-30
+
+This is a breaking update that renames terminology and begins feature updates
+based on experiences over the past year. Here's a summary of the terminology
+changes:
+
+1. Synthetic alarms are now called managed alarms since they are managed by
+   Alarmist.
+2. `Alarmist.Definition` is now `Alarmist.Alarm` to signify that you're
+   defining alarms.
+3. `defalarm` is now `alarm_if`. The way to read this is "[Alarmist] sets an
+   alarm IF the following condition is true". Future releases will have other
+   ways of indicating when alarms should be set.
+
+When upgrading, you'll get compiler errors to guide you on the renames.
+
+In addition to the above breaking changes, there are quite a few updates from
+v0.2.2:
+
+* New features
+  * Support for tuple-based alarm IDs like `{NetworkBroken, "eth0"}` to allow
+    for generic alarm types.  The boolean logic for combining alarms supports
+    variables now so that managed alarms don't need to know the
+    instance-specific pieces until registration.
+  * Support alarm severities. Alarm severities use the same atoms as Logger
+    severities (`:error`, `:warning`, `:info`, etc.) and may be set on both
+    managed and unmanaged alarms.
+  * Add `Alarmist.info/1` for quickly getting a list of set and cleared alarms
+    when using the CLI
+  * Support registering alarms and setting levels using the application
+    environment via `config :alarmist, ...`
+
+* Updates
+  * Internally created alarms when registering managed alarms are now all
+    `:debug` severity and won't display or be returned by default since most
+    alarm querying functions return `:info` and higher. You can still get to
+    them by passing `level: :debug` to affected functions.
+  * Fix silent failures of Alarmist API calls immediately after Alarmist is
+    started due to async `gen_event` handler registration. This seemed to only
+    affect unit tests in practice.
+  * Clean up state better when unregistering managed alarms and stopping the
+    Alarmist app.
+  * Many more unit tests for better code coverage of edge cases
+
 ## v0.2.2 - 2025-04-24
 
 * Updates
