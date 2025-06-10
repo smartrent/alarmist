@@ -337,9 +337,9 @@ defmodule Alarmist do
   @doc """
   Return all managed alarm IDs
   """
-  @spec managed_alarm_ids() :: [alarm_id()]
-  def managed_alarm_ids() do
-    Handler.managed_alarm_ids()
+  @spec managed_alarm_ids(timeout()) :: [alarm_id()]
+  def managed_alarm_ids(timeout \\ 5000) do
+    Handler.managed_alarm_ids(timeout)
   end
 
   @doc """

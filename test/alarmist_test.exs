@@ -179,6 +179,21 @@ defmodule AlarmistTest do
     :ok
   end
 
+  test "raises with nice error if not running" do
+    _ =
+      capture_log(fn ->
+        Application.stop(:alarmist)
+
+        assert_raise RuntimeError,
+                     "Alarmist.Handler not found. Please ensure Alarmist is started before using it.",
+                     fn -> Alarmist.managed_alarm_ids(250) end
+
+        Application.start(:alarmist)
+      end)
+
+    :ok
+  end
+
   test "adding an invalid managed alarm logs a warning via application environment" do
     log =
       capture_log(fn ->
