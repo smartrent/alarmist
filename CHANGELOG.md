@@ -2,6 +2,12 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.3.1 - 2025-06-10
+
+* Updates
+  * Loosen `:tablet` dependency to allow updates to latest version
+  * Fix Elixir 1.19 warning
+
 ## v0.3.0 - 2025-05-30
 
 This is a breaking update that renames terminology and begins feature updates
