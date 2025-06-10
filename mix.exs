@@ -20,13 +20,18 @@ defmodule Alarmist.MixProject do
         flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs],
         plt_add_apps: [:ex_unit]
       ],
-      deps: deps(),
-      preferred_cli_env: %{
+      deps: deps()
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: %{
+        dialyzer: :test,
         docs: :docs,
         "hex.build": :docs,
         "hex.publish": :docs,
-        credo: :test,
-        dialyzer: :test
+        credo: :test
       }
     ]
   end
