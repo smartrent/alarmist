@@ -29,9 +29,9 @@ defmodule Alarmist.Handler do
     gen_event_call(:alarm_handler, __MODULE__, {:remove_managed_alarm, alarm_id})
   end
 
-  @spec managed_alarm_ids() :: [Alarmist.alarm_id()]
-  def managed_alarm_ids() do
-    gen_event_call(:alarm_handler, __MODULE__, :managed_alarm_ids)
+  @spec managed_alarm_ids(timeout()) :: [Alarmist.alarm_id()]
+  def managed_alarm_ids(timeout) do
+    gen_event_call(:alarm_handler, __MODULE__, :managed_alarm_ids, timeout)
   end
 
   @spec set_alarm_level(Alarmist.alarm_id(), Logger.level()) :: :ok
@@ -51,9 +51,17 @@ defmodule Alarmist.Handler do
     end
   end
 
-  defp maybe_sleep(_handler, timeout) when is_integer(timeout) and timeout > 0 do
+  defp maybe_sleep(_handler, timeout) when is_integer(timeout) and timeout > 1 do
+    # Sleep up to 1 ms left on the timeout so that :gen_event.call/4 retries.
+    # Timeouts of 0 fail immediately and negative timeouts raise argument errors.
+    sleep_time = min(timeout - 1, @handler_retry_interval)
+    Process.sleep(sleep_time)
+    timeout - sleep_time
+  end
+
+  defp maybe_sleep(_handler, :infinity) do
     Process.sleep(@handler_retry_interval)
-    timeout - @handler_retry_interval
+    :infinity
   end
 
   defp maybe_sleep(handler, _timeout) do
