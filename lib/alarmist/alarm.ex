@@ -104,11 +104,20 @@ defmodule Alarmist.Alarm do
   end
 
   @doc false
-  defmacro intensity(expression, count, time) do
+  defmacro intensity(expression, count, period) do
     expr_expanded = expand_expression(expression, __CALLER__)
 
-    quote bind_quoted: [count: count, time: time, expr_expanded: expr_expanded] do
-      [:intensity, expr_expanded, count, time]
+    quote bind_quoted: [count: count, period: period, expr_expanded: expr_expanded] do
+      [:intensity, expr_expanded, count, period]
+    end
+  end
+
+  @doc false
+  defmacro on_time(expression, on_time, period) do
+    expr_expanded = expand_expression(expression, __CALLER__)
+
+    quote bind_quoted: [on_time: on_time, period: period, expr_expanded: expr_expanded] do
+      [:on_time, expr_expanded, on_time, period]
     end
   end
 

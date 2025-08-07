@@ -358,7 +358,7 @@ defmodule Alarmist.Engine do
 
   @doc false
   @spec start_timer(t(), Alarmist.alarm_id(), pos_integer(), Alarmist.alarm_state()) :: t()
-  def start_timer(engine, expiry_alarm_id, timeout_ms, value) do
+  def start_timer(engine, expiry_alarm_id, timeout_ms, value) when timeout_ms >= 0 do
     timer_id = make_ref()
     timer_action = {:start_timer, expiry_alarm_id, timeout_ms, value, timer_id}
 

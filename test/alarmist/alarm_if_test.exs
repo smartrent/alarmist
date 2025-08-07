@@ -117,6 +117,24 @@ defmodule Alarmist.AlarmIfTest do
     assert IntensityTest.__get_condition__() == expected_result
   end
 
+  test "on_time" do
+    defmodule OnTimeTest do
+      use Alarmist.Alarm
+
+      alarm_if do
+        on_time(AlarmId1, :timer.seconds(30), :timer.seconds(60))
+      end
+    end
+
+    expected_result = %{
+      rules: [{Alarmist.Ops, :on_time, [OnTimeTest, AlarmId1, 30000, 60000]}],
+      temporaries: [],
+      options: %{style: :atom, parameters: []}
+    }
+
+    assert OnTimeTest.__get_condition__() == expected_result
+  end
+
   test "and and or" do
     defmodule AndOrTest do
       use Alarmist.Alarm

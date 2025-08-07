@@ -7,6 +7,7 @@ defmodule Alarmist.Ops do
   Alarm operations for use with `alarm_if`
   """
   alias Alarmist.Engine
+  alias Alarmist.Window
 
   @opaque engine() :: Engine.t()
 
@@ -236,7 +237,7 @@ defmodule Alarmist.Ops do
 
   This type of rule catches flapping alarms where it's desirable to take some
   kind of remediation when they trigger too many times in a row. Intensity is
-  measured as `count` set/clears in `duration` milliseconds. This is the same
+  measured as `count` set/clears in `period` milliseconds. This is the same
   as supervision restart intensity thresholds.
 
   An example of an intensity-based alarm is to handle the case when multiple
@@ -260,29 +261,73 @@ defmodule Alarmist.Ops do
   ```
   """
   @spec intensity(engine(), [Alarmist.alarm_id(), ...]) :: engine()
-  def intensity(engine, [output, input, count, duration]) do
-    {engine, value} = Engine.cache_get(engine, input)
+  def intensity(engine, [output, input, count, period]) do
+    now = System.monotonic_time(:millisecond)
 
-    case value do
-      {:clear, _} ->
-        engine
+    {engine, {status, _description}} = Engine.cache_get(engine, input)
 
-      {:set, _} ->
-        timestamps = Engine.get_state(engine, output, [])
-        now = System.monotonic_time(:millisecond)
-        too_old = now - duration
-        new_timestamps = [now | timestamps] |> Enum.take_while(fn t -> t > too_old end)
+    events =
+      Engine.get_state(engine, output, [])
+      |> Window.add_event(status, now, period)
 
-        if length(new_timestamps) >= count do
-          good_at = duration - (now - Enum.at(new_timestamps, count - 1))
+    {new_status, time_to_next} = Window.check_frequency_alarm(events, count, period, now)
 
-          engine
-          |> Engine.cache_put(output, :set, nil)
-          |> Engine.start_timer(output, good_at, :clear)
-          |> Engine.set_state(output, new_timestamps)
-        else
-          engine |> Engine.set_state(output, new_timestamps)
-        end
+    engine
+    |> Engine.cache_put(output, new_status, [])
+    |> engine_update_timer(output, time_to_next, new_status)
+    |> Engine.set_state(output, events)
+  end
+
+  @doc """
+  Sets an alarm when the input has been set for too long in a given period
+
+  This records an alarms status over a `period` of time and accumulates the
+  total duration that the alarm has been set. If that duration exceeds `on_time`,
+  then the output alarm is set.
+
+  This is useful in situations where you may want to use `debounce/2`, but where
+  the input is flaky enough that it could bounce around and not trigger the
+  alarm. Using `intensity/3` might help in this situation, but coming up with
+  a total time for `on_time/3` is more intuitive.
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Alarm
+
+    alarm_if do
+      on_time(Alarm1, 30_000, 60_000)
     end
   end
+  ```
+  """
+  @spec on_time(engine(), [Alarmist.alarm_id(), ...]) :: engine()
+  def on_time(engine, [output, input, on_time, period]) do
+    now = System.monotonic_time(:millisecond)
+
+    {engine, {status, _description}} = Engine.cache_get(engine, input)
+
+    events =
+      Engine.get_state(engine, output, [])
+      |> Window.add_event(status, now, period)
+
+    {new_status, time_to_next} = Window.check_cumulative_alarm(events, on_time, period, now)
+
+    engine
+    |> Engine.cache_put(output, new_status, [])
+    |> engine_update_timer(output, time_to_next, new_status)
+    |> Engine.set_state(output, events)
+  end
+
+  defp engine_update_timer(engine, expiry_alarm_id, timeout_ms, status) when timeout_ms >= 0 do
+    Engine.start_timer(engine, expiry_alarm_id, timeout_ms, opposite(status))
+  end
+
+  defp engine_update_timer(engine, expiry_alarm_id, _timeout_ms, _value) do
+    Engine.cancel_timer(engine, expiry_alarm_id)
+  end
+
+  defp opposite(:set), do: :clear
+  defp opposite(:clear), do: :set
 end

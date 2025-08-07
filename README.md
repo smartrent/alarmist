@@ -24,7 +24,8 @@ iex> :alarm_handler.set_alarm({SomethingIsWrong, "Some optional description"})
 iex> :alarm_handler.clear_alarm(SomethingIsWrong)
 ```
 
-When you're at the IEx prompt, you can see the current alarm state in a few ways, but an easy way is to run `Alarmist.info/1`:
+When you're at the IEx prompt, you can see the current alarm state in a few
+ways, but an easy way is to run `Alarmist.info/1`:
 
 ```elixir
 iex> Alarmist.info
@@ -241,6 +242,30 @@ defmodule IntensityThresholdAlarm do
   alarm_if do
     # Set when raised and cleared >= 5 times in 3 seconds
     intensity(FlakyAlarm, 5, 3_000)
+  end
+end
+```
+
+### OnTime
+
+The `on_time/3` function sets an alarm when another has been accumulates over a
+certain amount of time being on over the course of an interval. An example of
+this is to handle an alarm that glitches on for short periods of time. Ignoring
+isolated glitches is the right thing to do, but if the accumulated alarm state
+exceeds a total amount of time in a period, then it's desirable to take action.
+
+Compare this with `intensity/3`. For `intensity/3`, it's the number of glitches
+in a period of time that matters. Long duration glitches (not really a glitch
+any more) don't affect the calculation. For `on_time/3`, it's the accumulated
+duration.
+
+```elixir
+defmodule OnTimeThresholdAlarm do
+  use Alarmist.Alarm
+
+  alarm_if do
+    # Set when 1 seconds of alarm time has accumulated in 3 seconds
+    on_time(FlakyAlarm, 1_000, 3_000)
   end
 end
 ```

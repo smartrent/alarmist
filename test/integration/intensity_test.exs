@@ -42,4 +42,19 @@ defmodule Integration.IntensityTest do
     Alarmist.remove_managed_alarm(IntensityAlarm)
     :alarm_handler.clear_alarm(IntensityTriggerAlarm)
   end
+
+  test "redundant sets are ignored" do
+    Alarmist.subscribe(IntensityAlarm)
+    Alarmist.add_managed_alarm(IntensityAlarm)
+
+    Enum.each(1..50, fn i ->
+      :alarm_handler.set_alarm({IntensityTriggerAlarm, i})
+      Process.sleep(1)
+    end)
+
+    refute_receive _, 10
+
+    Alarmist.remove_managed_alarm(IntensityAlarm)
+    :alarm_handler.clear_alarm(IntensityTriggerAlarm)
+  end
 end
