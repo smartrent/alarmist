@@ -37,7 +37,7 @@ defmodule Alarmist.Info do
     formatter_options =
       options
       |> Keyword.put_new_lazy(:monotonic_now, &System.monotonic_time/0)
-      |> Keyword.put_new_lazy(:utc_now, &NaiveDateTime.utc_now/0)
+      |> Keyword.put_new_lazy(:utc_now, &DateTime.utc_now/0)
 
     options =
       options
@@ -138,14 +138,18 @@ defmodule Alarmist.Info do
   defp level_text(:debug), do: [:cyan, "Debug", :default_color]
 
   defp format_timestamp(timestamp, options) do
-    offset = timestamp - options[:monotonic_now]
-    offset_seconds = System.convert_time_unit(offset, :native, :second)
-
     os_timestamp =
-      NaiveDateTime.add(options[:utc_now], offset_seconds, :second)
-      |> NaiveDateTime.truncate(:second)
+      Alarmist.Event.timestamp_to_utc(timestamp, {options[:monotonic_now], options[:utc_now]})
+      |> DateTime.truncate(:second)
 
-    [NaiveDateTime.to_string(os_timestamp), " (", pretty_duration(-offset_seconds), ")"]
+    offset_seconds =
+      DateTime.diff(
+        os_timestamp,
+        options[:utc_now],
+        :second
+      )
+
+    [DateTime.to_string(os_timestamp), " (", pretty_duration(-offset_seconds), ")"]
   end
 
   defp pretty_duration(delta_seconds) do
