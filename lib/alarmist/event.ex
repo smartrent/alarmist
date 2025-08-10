@@ -23,7 +23,7 @@ defmodule Alarmist.Event do
           state: Alarmist.alarm_state(),
           description: Alarmist.alarm_description(),
           level: Logger.level(),
-          previous_state: Alarmist.alarm_state() | :unknown,
+          previous_state: Alarmist.alarm_state(),
           timestamp: integer(),
           previous_timestamp: integer()
         }
