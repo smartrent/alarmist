@@ -47,7 +47,7 @@ defmodule Alarmist.EngineTest do
       assert side_effects == [{:clear, :my_alarm_id, nil, :warning}]
     end
 
-    test "redundant set alarms" do
+    test "multiple set alarms with different descriptions" do
       engine =
         Engine.init(&always_set_lookup_fun/1)
         |> Engine.set_alarm(:my_alarm_id, "description")
@@ -58,6 +58,15 @@ defmodule Alarmist.EngineTest do
 
       # only run final set
       assert side_effects == [{:set, :my_alarm_id, "description2", :warning}]
+    end
+
+    test "redundant set alarms" do
+      engine =
+        Engine.init(&always_set_lookup_fun/1)
+        |> Engine.set_alarm(:my_alarm_id, [])
+
+      {_engine, side_effects} = Engine.commit_side_effects(engine)
+      assert side_effects == []
     end
   end
 

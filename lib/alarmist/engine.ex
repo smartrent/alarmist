@@ -321,8 +321,8 @@ defmodule Alarmist.Engine do
     {engine, current_state} = cache_get(engine, alarm_id)
     level = engine.alarm_levels[alarm_id] || engine.default_alarm_levels[alarm_id] || :warning
 
-    case {current_state, alarm_state} do
-      {{from_state, _}, to_state} when from_state != to_state ->
+    case {current_state, {alarm_state, description}} do
+      {{from_state, _}, {to_state, _}} when from_state != to_state ->
         new_cache = Map.put(engine.cache, alarm_id, {to_state, description})
         new_changed = [alarm_id | engine.changed_alarm_ids]
 
@@ -330,11 +330,16 @@ defmodule Alarmist.Engine do
 
         %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
 
-      {{:set, _}, :set} ->
+      {{:set, d}, {:set, d}} ->
+        # Ignore redundant set
+        engine
+
+      {{:set, _}, {:set, _}} ->
+        # Description update
         new_actions_r = [{:set, alarm_id, description, level} | engine.actions_r]
         %{engine | actions_r: new_actions_r}
 
-      {{:clear, _}, :clear} ->
+      {{:clear, _}, {:clear, _}} ->
         # Ignore redundant clear
         engine
     end
