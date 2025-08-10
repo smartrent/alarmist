@@ -121,6 +121,15 @@ defmodule Alarmist.Alarm do
     end
   end
 
+  @doc false
+  defmacro sustain_window(expression, on_time, period) do
+    expr_expanded = expand_expression(expression, __CALLER__)
+
+    quote bind_quoted: [on_time: on_time, period: period, expr_expanded: expr_expanded] do
+      [:sustain_window, expr_expanded, on_time, period]
+    end
+  end
+
   @doc """
   Define a managed alarm
 

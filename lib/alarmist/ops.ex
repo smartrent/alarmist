@@ -320,6 +320,53 @@ defmodule Alarmist.Ops do
     |> Engine.set_state(output, events)
   end
 
+  @doc """
+  Sets an alarm when the input has been set for a minimum duration in a window
+
+  This only looks for one occurrence of the alarm being set for `on_time`
+  duration in a time period. If that exists, then the output is set.
+
+  This is useful for "good" alarms where being set is the desired state. The
+  alarm may later be inverted to become a more typical alarm. For this case,
+  the system is viewed as functioning good enough if the input alarm is on for
+  a long enough period of time. For example, this could be a connection to a
+  control server where being connected long enough in a time period is good
+  enough for remotely fixing the device.
+
+  Compare this with `debounce/2` followed by `hold/2` which can implement
+  similar behavior with appropriate parameters. `sustain_window/3` conveys
+  intent better and perhaps is easier to understand.
+
+  Example:
+
+  ```elixir
+  defmodule RemotelyFixableAlarm do
+    use Alarmist.Alarm
+
+    alarm_if do
+      sustain_window(ConnectedToServer, 30_000, 60_000)
+    end
+  end
+  ```
+  """
+  @spec sustain_window(engine(), [Alarmist.alarm_id(), ...]) :: engine()
+  def sustain_window(engine, [output, input, on_time, period]) do
+    now = System.monotonic_time(:millisecond)
+
+    {engine, {status, _description}} = Engine.cache_get(engine, input)
+
+    events =
+      Engine.get_state(engine, output, [])
+      |> Window.add_event(status, now, period)
+
+    {new_status, time_to_next} = Window.check_single_duration_alarm(events, on_time, period, now)
+
+    engine
+    |> Engine.cache_put(output, new_status, [])
+    |> engine_update_timer(output, time_to_next, new_status)
+    |> Engine.set_state(output, events)
+  end
+
   defp engine_update_timer(engine, expiry_alarm_id, timeout_ms, status) when timeout_ms >= 0 do
     Engine.start_timer(engine, expiry_alarm_id, timeout_ms, opposite(status))
   end

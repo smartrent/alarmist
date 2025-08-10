@@ -70,7 +70,7 @@ defmodule Alarmist.Compiler do
   end
 
   defp do_compile(state, [function1, input | params])
-       when function1 in [:debounce, :hold, :intensity, :on_time] do
+       when function1 in [:debounce, :hold, :intensity, :on_time, :sustain_window] do
     {state, [resolved_input]} = resolve(state, [input])
     {state, result} = make_variable(state)
     rule = mf(function1, [result, resolved_input | params])
@@ -81,7 +81,7 @@ defmodule Alarmist.Compiler do
   defp mf(:or, args), do: {Alarmist.Ops, :logical_or, args}
   defp mf(:not, args), do: {Alarmist.Ops, :logical_not, args}
 
-  defp mf(op, args) when op in [:copy, :debounce, :hold, :intensity, :on_time],
+  defp mf(op, args) when op in [:copy, :debounce, :hold, :intensity, :on_time, :sustain_window],
     do: {Alarmist.Ops, op, args}
 
   defp make_variable(state) do
