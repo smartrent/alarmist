@@ -31,6 +31,7 @@ defmodule AlarmistTest do
 
     assert {TestAlarm, nil} in Alarmist.get_alarms()
     assert TestAlarm in Alarmist.get_alarm_ids()
+    assert Alarmist.alarm_state(TestAlarm) == :set
 
     :alarm_handler.clear_alarm(TestAlarm)
 
@@ -42,6 +43,7 @@ defmodule AlarmistTest do
 
     refute {TestAlarm, nil} in Alarmist.get_alarms()
     refute TestAlarm in Alarmist.get_alarm_ids()
+    assert Alarmist.alarm_state(TestAlarm) == :clear
 
     refute_receive _
   end
@@ -351,6 +353,32 @@ defmodule AlarmistTest do
       assert [] == Alarmist.get_alarms(level: :info)
       assert [{:"Elixir.NotNotAlarm.0", nil}] == Alarmist.get_alarms(level: :debug)
 
+      Alarmist.remove_managed_alarm(NotNotAlarm)
+    end
+  end
+
+  describe "Alarmist.alarm_state/1" do
+    test "getting an alarm in all states" do
+      alarm_id = TestAlarmForAlarmState
+      assert :unknown == Alarmist.alarm_state(alarm_id)
+
+      Alarmist.subscribe(alarm_id)
+
+      :alarm_handler.set_alarm({alarm_id, nil})
+      assert_receive %Alarmist.Event{id: ^alarm_id, state: :set}
+
+      assert :set == Alarmist.alarm_state(alarm_id)
+
+      :alarm_handler.clear_alarm(alarm_id)
+      assert_receive %Alarmist.Event{id: ^alarm_id, state: :clear}
+
+      assert :clear == Alarmist.alarm_state(alarm_id)
+      Alarmist.unsubscribe(alarm_id)
+    end
+
+    test "can get an intermediate alarm" do
+      Alarmist.add_managed_alarm(NotNotAlarm)
+      assert :set == Alarmist.alarm_state(:"Elixir.NotNotAlarm.0")
       Alarmist.remove_managed_alarm(NotNotAlarm)
     end
   end

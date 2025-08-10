@@ -70,8 +70,12 @@ defmodule Alarmist do
   and in the `:clear` state after a call to `:alarm_handler.clear_alarm/1`.
   Redundant calls to `:alarm_handler.set_alarm/1` update the alarm description
   and redundant calls to `:alarm_handler.clear_alarm/1` are ignored.
+
+  The `:unknown` state is used for alarms that are unknown to Alarmist. These
+  alarms may have typos in the names or they simply may not have been set
+  or cleared yet.
   """
-  @type alarm_state() :: :set | :clear
+  @type alarm_state() :: :set | :clear | :unknown
 
   @opaque rule() :: {module(), atom(), list()}
   @type compiled_condition() :: %{
@@ -175,6 +179,19 @@ defmodule Alarmist do
       _ ->
         []
     end)
+  end
+
+  @doc """
+  Get the current state of an alarm
+
+  Alarms get known by Alarmist when they're first set or cleared.
+  """
+  @spec alarm_state(alarm_id()) :: alarm_state()
+  def alarm_state(alarm_id) when is_alarm_id(alarm_id) do
+    case PropertyTable.get(Alarmist, alarm_id) do
+      {state, _description, _level} -> state
+      nil -> :unknown
+    end
   end
 
   @doc """
