@@ -16,6 +16,7 @@ defmodule Alarmist.Application do
        name: Alarmist,
        matcher: Alarmist.Matcher,
        event_transformer: &Alarmist.Event.from_property_table/1},
+      {Alarmist.RemedySupervisor, name: Alarmist.RemedySupervisor},
       {Task, &install_handler/0}
     ]
 

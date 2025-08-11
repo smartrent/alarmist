@@ -84,11 +84,10 @@ the alarm can be documented in Hex docs and the like.
 ## Managed alarms
 
 One of the major features of `Alarmist` is the ability to compose alarms via
-boolean logic. This simplifies alarm handling code since it's often the case
-that you don't want to trigger a remediation immediately or a remediation may
-only be useful if some combination of alarms are set. Another advantage of
-creating these "managed" alarms is code simplification where the Alarmist DSL
-can make one-liners out of many real world alarm scenarios.
+boolean logic and add callback functions to fix (remediate) issues causing the
+alarms. This can simplify alarm handling code by removing boilerplate, removing
+hard-to-test conditional logic, and simplifying the triggering conditions to
+where visual inspection is possible.
 
 As before, networking issues make good examples. Home and business networks
 have some normal hiccups that don't require remediation. Sometimes just waiting
@@ -123,6 +122,7 @@ Alarmist provides the following options for managed alarms:
 * `:level` - the severity of the alarm
 * `:style` - how the alarm message is constructed. `:atom` or `:tagged_tuple`
 * `:parameters` - a list of atom keys that define a `:tagged_tuple` alarm
+* `:remedy` - a callback function to handle the alarm when set
 
 ### Alarm severity
 
@@ -170,6 +170,61 @@ replaced with the network interface name of interest. Of course, Alarmist
 doesn't know what network interfaces are available, so application code needs
 to call `Alarmist.add_managed_alarm/1` with each possibility. I.e.,
 `Alarmist.add_managed_alarm({NetworkDownAlarm, "eth0"})`
+
+### Remedies
+
+Remedies are callback functions that are run when alarms get set. They may be
+manually registered on any alarm using `Alarmist.add_remedy/3`. Registration is
+automatic when including them with a managed alarm specification. The callback
+may take zero or one arguments. If 1-arity, then the alarm ID is passed.
+
+The following example shows a managed alarm that monitors a hypothetical
+`SensorNotResponding` alarm. Once that alarm is set for 5 minutes straight, it
+does a hardware reset of the sensor to try to fix it. Hopefully after the
+hardware reset, it will work again.
+
+```elixir
+defmodule SensorAlarm do
+  use Alarmist.Alarm, remedy: {__MODULE__, :fix, 1}
+
+  alarm_if do
+    debounce(SensorNotResponding, to_timeout(minute: 5))
+  end
+
+  def fix(_alarm_id) do
+    SensorDriver.hardware_reset()
+  end
+end
+```
+
+Callbacks have the following options:
+
+* `:retry_timeout` — time to wait for the alarm to be cleared before calling
+    the callback again (default: `:infinity`)
+* `:callback_timeout` — time to wait for the callback to run (default: 60 seconds)
+
+In this example, `Sensor.hardware_reset/0` is only called once. You could call
+it every minute that the sensor continues to not respond. E.g., the following
+change would call it at the 5 minute mark, 6 minute, 7 minute, etc.
+
+```elixir
+  use Alarmist.Alarm, remedy: {{__MODULE__, :fix, 1}, retry_timeout: to_timeout(minute: 1)}
+
+  ...
+```
+
+Alarmist takes care when invoking remedy callbacks and handles crashes and
+hangs. The default time to wait before unceremoniously killing the process
+that's running callback is specified using the `:callback_timeout` option.
+For flapping alarms, Alarmist ensures that only one callback is running at
+a time per alarm ID. No callback queuing happens. I.e., if a callback is
+running when an alarm transitions to clear and then back to set, Alarmist
+skips running the callback on that second set.
+
+For stateful callback handling or when you have a convenient `GenServer` for
+which to receive alarm messages, it's better to subscribe to alarm events via
+`Alarmist.subscribe/1`. The primary benefit of using the `:remedy` option is to
+avoid writing somewhat nontrivial boilerplate code to execute a short function.
 
 ### Unknown alarm handling
 

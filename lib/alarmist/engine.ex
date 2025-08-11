@@ -131,6 +131,8 @@ defmodule Alarmist.Engine do
   defp to_token({:forget, alarm_id}), do: {:state, alarm_id}
   defp to_token({:start_timer, alarm_id, _timeout, _value, _timer_id}), do: {:timer, alarm_id}
   defp to_token({:cancel_timer, alarm_id}), do: {:timer, alarm_id}
+  defp to_token({:register_remedy, alarm_id, _callback}), do: {:remedy, alarm_id}
+  defp to_token({:unregister_remedy, alarm_id}), do: {:remedy, alarm_id}
 
   defp run_changed(engine) do
     changed_alarm_ids = engine.changed_alarm_ids
@@ -182,17 +184,28 @@ defmodule Alarmist.Engine do
   end
 
   defp register_condition(engine, alarm_id, condition) do
-    level = Alarmist.alarm_type(alarm_id).__alarm_level__()
+    alarm_type = Alarmist.alarm_type(alarm_id)
+    level = alarm_type.__alarm_level__()
+    remedy = alarm_type.__remedy__()
 
     # Temporary alarms are always debug level
     new_levels =
       [{alarm_id, level} | Enum.map(condition.temporaries, &{&1, :debug})]
       |> Map.new()
 
+    # If there's a remedy function, register it with the remedy runner
+    new_actions_r =
+      if remedy != nil do
+        [{:register_remedy, alarm_id, remedy} | engine.actions_r]
+      else
+        engine.actions_r
+      end
+
     %{
       engine
       | registered_conditions: Map.put(engine.registered_conditions, alarm_id, condition),
-        default_alarm_levels: Map.merge(engine.default_alarm_levels, new_levels)
+        default_alarm_levels: Map.merge(engine.default_alarm_levels, new_levels),
+        actions_r: new_actions_r
     }
   end
 
@@ -259,7 +272,8 @@ defmodule Alarmist.Engine do
           | registered_conditions: new_registered_conditions,
             default_alarm_levels: new_levels,
             alarm_id_to_rules: new_alarm_id_to_rules,
-            states: new_states
+            states: new_states,
+            actions_r: [{:unregister_remedy, managed_alarm_id} | engine.actions_r]
         }
 
       Enum.reduce(alarm_ids_to_forget, new_engine, fn a, e ->
@@ -341,7 +355,8 @@ defmodule Alarmist.Engine do
         new_cache = Map.put(engine.cache, alarm_id, {to_state, description})
         new_changed = [alarm_id | engine.changed_alarm_ids]
 
-        new_actions_r = [{to_state, alarm_id, description, level} | engine.actions_r]
+        action = {to_state, alarm_id, description, level}
+        new_actions_r = [action | engine.actions_r]
 
         %{engine | cache: new_cache, changed_alarm_ids: new_changed, actions_r: new_actions_r}
 
