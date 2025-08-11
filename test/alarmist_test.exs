@@ -576,4 +576,159 @@ defmodule AlarmistTest do
     assert_raise ArgumentError, fn -> Alarmist.alarm_type({"string", 1}) end
     assert_raise ArgumentError, fn -> Alarmist.alarm_type(%{}) end
   end
+
+  describe "Alarmist.add_remedy/3" do
+    test "basics" do
+      pid = self()
+      Alarmist.subscribe(:some_alarm)
+      Alarmist.add_remedy(:some_alarm, fn _ -> send(pid, :got_it) end)
+      refute_received _
+
+      :alarm_handler.set_alarm({:some_alarm, nil})
+      assert_receive %Alarmist.Event{id: :some_alarm, state: :set}
+      assert_receive :got_it
+
+      :alarm_handler.clear_alarm(:some_alarm)
+      assert_receive %Alarmist.Event{id: :some_alarm, state: :clear}
+      refute_receive _
+
+      Alarmist.unsubscribe(:some_alarm)
+      Alarmist.remove_remedy(:some_alarm)
+    end
+
+    test "add twice is ok" do
+      assert :ok = Alarmist.add_remedy(:some_alarm, &Function.identity/1)
+      assert :ok = Alarmist.add_remedy(:some_alarm, &Function.identity/1)
+    end
+
+    test "second add replaces" do
+      pid = self()
+      Alarmist.add_remedy(:some_alarm, fn _ -> send(pid, :no) end)
+      Alarmist.add_remedy(:some_alarm, fn _ -> send(pid, :yes) end)
+
+      :alarm_handler.set_alarm({:some_alarm, nil})
+      assert_receive :yes
+      :alarm_handler.clear_alarm(:some_alarm)
+    end
+
+    test "second add can change the retry timer" do
+      pid = self()
+      callback = fn _ -> send(pid, :callback_run) end
+
+      Alarmist.add_remedy(:some_alarm, callback)
+      :alarm_handler.set_alarm({:some_alarm, nil})
+      assert_receive :callback_run
+      refute_receive _
+
+      Alarmist.add_remedy(:some_alarm, callback, retry_timeout: 50)
+      assert_receive :callback_run
+      assert_receive :callback_run
+
+      :alarm_handler.clear_alarm(:some_alarm)
+      Alarmist.remove_remedy(:some_alarm)
+    end
+
+    test "second add with defaults uses the defaults" do
+      pid = self()
+      callback = fn _ -> send(pid, :callback_run) end
+
+      Alarmist.add_remedy(:some_alarm, callback, retry_timeout: 50)
+      :alarm_handler.set_alarm({:some_alarm, nil})
+      assert_receive :callback_run
+      refute_received _
+
+      # The default retry timeout is :infinity, so there should be no retries
+      # after adding the remedy again since it would have already run it.
+      Alarmist.add_remedy(:some_alarm, callback)
+      refute_receive _
+
+      :alarm_handler.clear_alarm(:some_alarm)
+      Alarmist.remove_remedy(:some_alarm)
+    end
+
+    test "second add can change the callback timer" do
+      pid = self()
+
+      callback = fn _ ->
+        send(pid, :started)
+        Process.sleep(100)
+        send(pid, :finished)
+      end
+
+      Alarmist.add_remedy(:some_alarm, callback, callback_timeout: 50, retry_timeout: 50)
+      :alarm_handler.set_alarm({:some_alarm, nil})
+
+      capture_log(fn ->
+        # Check that it was retried and never got to finish
+        assert_receive :started
+        refute_receive _, 50
+        assert_receive :started
+        refute_received _
+
+        # Lengthen the callback timeout so the 100ms sleep can finish
+        # now. There will be now `:started` since the config change should
+        # only update the timer.
+        Alarmist.add_remedy(:some_alarm, callback, callback_timeout: 200)
+        assert_receive :finished, 200
+        refute_received _
+      end)
+
+      :alarm_handler.clear_alarm(:some_alarm)
+      Alarmist.remove_remedy(:some_alarm)
+    end
+
+    test "mfa callbacks work" do
+      alarm_id = {:some_alarm, self()}
+
+      Alarmist.add_remedy(alarm_id, {__MODULE__, :test_remedy_callback, 1})
+      refute_received _
+
+      :alarm_handler.set_alarm({alarm_id, nil})
+      assert_receive :got_it
+
+      :alarm_handler.clear_alarm(alarm_id)
+      refute_receive _
+    end
+
+    def test_remedy_callback({:some_alarm, pid}) do
+      send(pid, :got_it)
+    end
+  end
+
+  describe "Alarmist.remove_remedy/3" do
+    test "remove removes" do
+      pid = self()
+      Alarmist.add_remedy(:some_alarm, fn _ -> send(pid, :hello) end)
+
+      :alarm_handler.set_alarm({:some_alarm, nil})
+      assert_receive :hello
+      :alarm_handler.clear_alarm(:some_alarm)
+
+      Alarmist.remove_remedy(:some_alarm)
+      :alarm_handler.set_alarm({:some_alarm, nil})
+      refute_receive _
+      :alarm_handler.clear_alarm(:some_alarm)
+    end
+
+    test "removing unknown returns error" do
+      assert {:error, :not_found} == Alarmist.remove_remedy(:no_remedy_here)
+    end
+
+    test "removing running callback kills it" do
+      pid = self()
+
+      Alarmist.add_remedy(:some_alarm, fn _ ->
+        send(pid, :started)
+        Process.sleep(100)
+        send(pid, :finished)
+      end)
+
+      :alarm_handler.set_alarm({:some_alarm, nil})
+      assert_receive :started
+      assert :ok = Alarmist.remove_remedy(:some_alarm)
+
+      refute_receive _, 200
+      :alarm_handler.clear_alarm(:some_alarm)
+    end
+  end
 end

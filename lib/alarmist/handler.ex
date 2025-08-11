@@ -11,6 +11,7 @@ defmodule Alarmist.Handler do
   import Alarmist, only: [is_alarm_id: 1]
 
   alias Alarmist.Engine
+  alias Alarmist.RemedySupervisor
 
   require Logger
 
@@ -229,6 +230,14 @@ defmodule Alarmist.Handler do
 
   defp run_side_effect({:clear, alarm_id, _, level}) do
     PropertyTable.put(Alarmist, alarm_id, {:clear, nil, level})
+  end
+
+  defp run_side_effect({:register_remedy, alarm_id, remedy}) do
+    RemedySupervisor.start_worker(alarm_id, remedy)
+  end
+
+  defp run_side_effect({:unregister_remedy, alarm_id}) do
+    RemedySupervisor.stop_worker(alarm_id)
   end
 
   defp run_side_effect({:start_timer, alarm_id, timeout, what, params}) do

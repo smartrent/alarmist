@@ -137,14 +137,17 @@ defmodule Alarmist.Alarm do
 
   * `:level` - the alarm severity. See `t:Logger.level/0`. Defaults to
     `:warning` and can be overridden by `Alarmist.set_alarm_level/2`.
-  * `:parameters` a list of atom keys that refine the scope of the alarm. For
+  * `:parameters` - a list of atom keys that refine the scope of the alarm. For
     example, a networking alarm might specify `[:ifname]` to indicate that the
     alarm pertains to a specific network interface.
-  * `:style` the alarm style when parameters are used. Defaults to
+  * `:remedy` - a 1-arity function or a {1-arity function, options} tuple. The
+    function will be called when the alarm is set
+  * `:style` - the alarm style when parameters are used. Defaults to
     `:tagged_tuple` to indicate that alarms are tuples where the first element
     is the alarm type and the subsequent elements are the parameters.
   """
   defmacro __using__(options) do
+    if not Macro.quoted_literal?(options), do: raise("Not quoted literal")
     level = Keyword.get(options, :level, :warning)
 
     if level not in Logger.levels() do
@@ -174,11 +177,14 @@ defmodule Alarmist.Alarm do
         :ok
     end
 
+    remedy = Keyword.get(options, :remedy)
+
     quote do
       @before_compile unquote(__MODULE__)
       @alarmist_level unquote(level)
-      @alarmist_style unquote(style)
       @alarmist_parameters unquote(parameters)
+      @alarmist_remedy unquote(remedy)
+      @alarmist_style unquote(style)
 
       Module.register_attribute(__MODULE__, :alarmist_alarm, [])
 
@@ -188,6 +194,16 @@ defmodule Alarmist.Alarm do
       @spec __alarm_level__() :: Logger.level()
       def __alarm_level__() do
         @alarmist_level
+      end
+
+      @doc false
+      @spec __remedy__() ::
+              nil
+              | Alarmist.remedy_fn()
+              | atom()
+              | {Alarmist.remedy_fn() | atom(), Alarmist.remedy_options()}
+      def __remedy__() do
+        @alarmist_remedy
       end
 
       def __alarm_parameters__(alarm_id) do

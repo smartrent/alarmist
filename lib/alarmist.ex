@@ -13,6 +13,7 @@ defmodule Alarmist do
   `Alarmist.Alarm`.
   """
   alias Alarmist.Handler
+  alias Alarmist.RemedySupervisor
 
   # SASL doesn't export types for these so create them here
   @typedoc """
@@ -100,6 +101,20 @@ defmodule Alarmist do
           level: Logger.level(),
           sort: :level | :alarm_id | :duration,
           ansi_enabled?: boolean()
+        ]
+
+  @typedoc "Callback function for fixing alarms"
+  @type remedy_fn() :: (alarm_id() -> any()) | mfa()
+
+  @typedoc """
+  Options for running the remedy callback
+
+  * `:retry_timeout` — time to wait for the alarm to be cleared before calling the callback again (default: `:infinity`)
+  * `:callback_timeout` — time to wait for the callback to run (default: 60 seconds)
+  """
+  @type remedy_options() :: [
+          retry_timeout: timeout(),
+          callback_timeout: timeout()
         ]
 
   @doc """
@@ -357,6 +372,54 @@ defmodule Alarmist do
   @spec managed_alarm_ids(timeout()) :: [alarm_id()]
   def managed_alarm_ids(timeout \\ 5000) do
     Handler.managed_alarm_ids(timeout)
+  end
+
+  @doc """
+  Add a callback to fix an Alarm ID
+
+  This is a simple way of adding a callback function to deal with an alarm
+  being set. Conceptually it is similar to starting a `GenServer`, calling
+  `subscribe/1`, and running the callback on alarm set messages. It provides a
+  number of conveniences:
+
+  * Supervision is handled for you. If the callback crashes, you'll get a
+    message in the log, but it won't prevent future attempts
+  * Handles fast toggling of alarm states to prevent the callback being invoked
+    after the alarm clears.
+  * Can repeatedly call the callback after a retry delay for alarms that aren't
+    clearing
+  * Can delay callback runs to allow the system to cool
+
+  Only one remedy callback can be registered per Alarm ID. If you are running
+  the remedy on a managed alarm, see `Alarmist.Alarm` for specifying it there
+  and the remedy callback will be automatically added when the managed alarm
+  is.
+
+  Options:
+  * `:retry_timeout` — time to wait for the alarm to be cleared before calling
+    the callback again (default: `:infinity`)
+  * `:callback_timeout` — time to wait for the callback to run (default: 60 seconds)
+
+  Since there can only be one remedy per Alarm ID, subsequent calls replace. If an
+  alarm is already set, the new callback will be called the next time. This means
+  that crash/restarts of the process that adds the remedy does not cause the callback
+  to be invoked twice. In fact, if the callback and options are the same, it will
+  look like a no-op. If you don't want this behavior, call `remove_remedy/1` and then
+  `add_remedy/3` to force new calls to be made.
+  """
+  @spec add_remedy(alarm_id(), remedy_fn(), remedy_options()) :: :ok | {:error, atom()}
+  def add_remedy(alarm_id, callback, options \\ []) do
+    RemedySupervisor.start_worker(alarm_id, {callback, options})
+  end
+
+  @doc """
+  Remove a remedy callback
+
+  If the callback is currently running, the process running it will be killed.
+  """
+  @spec remove_remedy(alarm_id()) :: :ok | {:error, :not_found}
+  def remove_remedy(alarm_id) do
+    RemedySupervisor.stop_worker(alarm_id)
   end
 
   @doc """
