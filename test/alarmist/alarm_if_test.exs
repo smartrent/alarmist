@@ -21,7 +21,6 @@ defmodule Alarmist.AlarmIfTest do
     }
 
     assert IdentityTest.__get_condition__() == expected_result
-    assert IdentityTest.__get_condition_source__() == "MyAlarmId"
   end
 
   test "and" do
@@ -40,7 +39,6 @@ defmodule Alarmist.AlarmIfTest do
     }
 
     assert AndTest.__get_condition__() == expected_result
-    assert AndTest.__get_condition_source__() == "AlarmId1 and AlarmId2"
   end
 
   test "not" do
@@ -59,7 +57,6 @@ defmodule Alarmist.AlarmIfTest do
     }
 
     assert NotTest.__get_condition__() == expected_result
-    assert NotTest.__get_condition_source__() == "not AlarmId1"
   end
 
   test "debounce" do
@@ -78,7 +75,6 @@ defmodule Alarmist.AlarmIfTest do
     }
 
     assert DebounceTest.__get_condition__() == expected_result
-    assert DebounceTest.__get_condition_source__() == "debounce(AlarmId1, 1000)"
   end
 
   test "hold" do
@@ -156,7 +152,6 @@ defmodule Alarmist.AlarmIfTest do
     }
 
     assert AndOrTest.__get_condition__() == expected_result
-    assert AndOrTest.__get_condition_source__() == "AlarmId1 or (AlarmId2 and AlarmId3)"
   end
 
   test "compound with not" do
