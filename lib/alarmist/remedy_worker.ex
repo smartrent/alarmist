@@ -187,20 +187,20 @@ defmodule Alarmist.RemedyWorker do
   @spec waiting_to_retry(:gen_statem.event_type(), any(), data()) :: any()
 
   def waiting_to_retry(:enter, _previous_state, data),
-    do: {:keep_state_and_data, [{{:timeout, :waiting_to_retry}, data.retry_timeout, :wait_over}]}
+    do: {:keep_state_and_data, [{{:timeout, :retry}, data.retry_timeout, :timeout}]}
 
-  def waiting_to_retry({:timeout, :waiting_to_retry}, :wait_over, data),
+  def waiting_to_retry({:timeout, :retry}, :timeout, data),
     do: {:next_state, :running, data, []}
 
   def waiting_to_retry(:info, %Alarmist.Event{state: :clear}, data),
-    do: {:next_state, :clear, data, [{{:timeout, :waiting_to_retry}, :cancel}]}
+    do: {:next_state, :clear, data, [{{:timeout, :retry}, :cancel}]}
 
   def waiting_to_retry({:call, from}, {:configure, opts}, data) do
     {new_data, changed} = refresh_data(data, opts)
 
     actions =
       if :retry_timeout in changed,
-        do: [{{:timeout, :waiting_to_retry}, new_data.retry_timeout, :wait_over}],
+        do: [{{:timeout, :retry}, new_data.retry_timeout, :timeout}],
         else: []
 
     {:keep_state, new_data, [{:reply, from, :ok} | actions]}
@@ -222,8 +222,7 @@ defmodule Alarmist.RemedyWorker do
     task =
       Task.Supervisor.async_nolink(data.task_supervisor, fn -> data.callback.(data.alarm_id) end)
 
-    {:keep_state, %{data | task: task},
-     [{{:timeout, :run_timer}, data.callback_timeout, :run_timeout}]}
+    {:keep_state, %{data | task: task}, [{{:timeout, :run}, data.callback_timeout, :timeout}]}
   end
 
   def running(:info, %Alarmist.Event{state: :clear}, data),
@@ -232,14 +231,14 @@ defmodule Alarmist.RemedyWorker do
   def running(:info, {ref, _result}, %{task: %{ref: ref}} = data) do
     Process.demonitor(ref, [:flush])
 
-    {:next_state, :waiting_to_retry, %{data | task: nil}, [{{:timeout, :run_timer}, :cancel}]}
+    {:next_state, :waiting_to_retry, %{data | task: nil}, [{{:timeout, :run}, :cancel}]}
   end
 
   def running(:info, {:DOWN, ref, :process, _pid, _reason}, %{task: %{ref: ref}} = data) do
-    {:next_state, :waiting_to_retry, %{data | task: nil}, [{{:timeout, :run_timer}, :cancel}]}
+    {:next_state, :waiting_to_retry, %{data | task: nil}, [{{:timeout, :run}, :cancel}]}
   end
 
-  def running({:timeout, :run_timer}, :run_timeout, data) do
+  def running({:timeout, :run}, :timeout, data) do
     Logger.error(
       "Remedy callback for alarm #{inspect(data.alarm_id)} timed out after #{data.callback_timeout}ms"
     )
@@ -254,7 +253,7 @@ defmodule Alarmist.RemedyWorker do
 
     actions =
       if :callback_timeout in changed,
-        do: [{{:timeout, :run_timer}, new_data.callback_timeout, :run_timeout}],
+        do: [{{:timeout, :run}, new_data.callback_timeout, :timeout}],
         else: []
 
     {:keep_state, new_data, [{:reply, from, :ok} | actions]}
@@ -269,14 +268,14 @@ defmodule Alarmist.RemedyWorker do
   def finishing_run(:info, {ref, _result}, %{task: %{ref: ref}} = data) do
     Process.demonitor(ref, [:flush])
 
-    {:next_state, :clear, %{data | task: nil}, [{{:timeout, :run_timer}, :cancel}]}
+    {:next_state, :clear, %{data | task: nil}, [{{:timeout, :run}, :cancel}]}
   end
 
   def finishing_run(:info, {:DOWN, ref, :process, _pid, _reason}, %{task: %{ref: ref}} = data) do
-    {:next_state, :clear, %{data | task: nil}, [{{:timeout, :run_timer}, :cancel}]}
+    {:next_state, :clear, %{data | task: nil}, [{{:timeout, :run}, :cancel}]}
   end
 
-  def finishing_run({:timer, :run_timer}, :run_timeout, data) do
+  def finishing_run({:timer, :run_timer}, :timeout, data) do
     _ = Task.shutdown(data.task, :brutal_kill)
 
     {:next_state, :clear, %{data | task: nil}}
@@ -292,7 +291,7 @@ defmodule Alarmist.RemedyWorker do
 
     actions =
       if :callback_timeout in changed,
-        do: [{{:timeout, :run_timer}, new_data.callback_timeout, :run_timeout}],
+        do: [{{:timeout, :run}, new_data.callback_timeout, :timeout}],
         else: []
 
     {:keep_state, new_data, [{:reply, from, :ok} | actions]}
