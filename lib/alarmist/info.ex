@@ -27,8 +27,9 @@ defmodule Alarmist.Info do
 
   Call `tabular_info/2` for programmatic purposes.
 
-  * `:level` - print only alarms that are this severity or worse
   * `:ansi_enabled?` - override the default ANSI setting
+  * `:level` - print only alarms that are this severity or worse
+  * `:show_cleared?` - show cleared alarms too
   """
   @spec info([tuple()], Alarmist.info_options()) :: :ok
   def info(alarms, options) do
@@ -54,15 +55,20 @@ defmodule Alarmist.Info do
         set_rows,
         Keyword.merge(options, name: "Set Alarms", column_widths: column_widths)
       ),
-      "\n",
-      Tablet.render(
-        clear_rows,
-        Keyword.merge(
-          options,
-          name: "Cleared Alarms",
-          formatter: &clear_formatter(&1, &2, formatter_options),
-          column_widths: column_widths
-        )
+      if(Keyword.get(options, :show_cleared?),
+        do: [
+          "\n",
+          Tablet.render(
+            clear_rows,
+            Keyword.merge(
+              options,
+              name: "Cleared Alarms",
+              formatter: &clear_formatter(&1, &2, formatter_options),
+              column_widths: column_widths
+            )
+          )
+        ],
+        else: []
       )
     ]
     |> IO.ANSI.format(Keyword.get_lazy(options, :ansi_enabled?, &IO.ANSI.enabled?/0))

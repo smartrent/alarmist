@@ -363,9 +363,9 @@ defmodule Alarmist do
   Print alarm status in a nice table
 
   Options:
-  * `:level` - filter alarms by severity. Defaults to `:info`.
-  * `:sort` - `:level`, `:alarm_id`, or `:duration`. Defaults to `:level`.
   * `:ansi_enabled?` - override the default ANSI setting. Defaults to `true`.
+  * `:level` - filter alarms by severity. Defaults to `:info`.
+  * `:show_cleared?` - show cleared alarms. Defaults to `false`.
   """
   @spec info(info_options()) :: :ok
   def info(options \\ []) do

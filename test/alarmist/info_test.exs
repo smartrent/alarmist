@@ -30,6 +30,36 @@ defmodule Alarmist.InfoTest do
   end
 
   describe "info/1" do
+    test "returns set alarms at info by default" do
+      now = System.monotonic_time()
+
+      options = [
+        ansi_enabled?: false,
+        monotonic_now: now,
+        utc_now: ~U[2025-05-26 18:44:39Z]
+      ]
+
+      expected = """
+                                           Set Alarms
+      SEVERITY   ALARM ID            LAST CHANGE                    DESCRIPTION
+      Emergency  NetworkDown         2025-05-26 18:42:39Z (2m 0s)   A long description
+      Alert      ThatsBad            2025-05-26 18:36:39Z (8m 0s)   Something else
+      Critical   CatastropheEminent  2025-05-26 18:41:39Z (3m 0s)
+      Error      AError              2025-05-26 18:37:39Z (7m 0s)   who knows
+      Error      BError              2025-05-26 18:38:39Z (6m 0s)   who knows
+      Error      CError              2025-05-26 18:39:39Z (5m 0s)   who knows
+      Warning    Hello               2025-05-26 18:34:39Z (10m 0s)  123
+      Notice     YouShouldKnowThis   2025-05-26 18:33:39Z (11m 0s)  %{key: 1}
+      Info       JustSaying          2025-05-26 18:32:39Z (12m 0s)  Don't worry about this
+
+      """
+
+      output = capture_io(fn -> Info.info(raw_alarms(now), options) end)
+      output = String.split(output, "\n") |> Enum.map(&String.trim_trailing/1) |> Enum.join("\n")
+
+      assert expected == output
+    end
+
     test "returns everything at debug level" do
       now = System.monotonic_time()
 
@@ -37,7 +67,8 @@ defmodule Alarmist.InfoTest do
         level: :debug,
         ansi_enabled?: false,
         monotonic_now: now,
-        utc_now: ~U[2025-05-26 18:44:39Z]
+        utc_now: ~U[2025-05-26 18:44:39Z],
+        show_cleared?: true
       ]
 
       expected = """
