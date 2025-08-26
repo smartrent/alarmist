@@ -27,13 +27,18 @@ defmodule Alarmist.Window do
   def add_event([], :set, now, _period), do: [{now, :set}]
 
   def add_event([{first_time, first_status} | _] = events, status, now, period)
-      when now >= first_time and first_status != status do
-    too_old = now - period
+      when now >= first_time do
+    if first_status != status do
+      [{now, status} | gc_event_list(events, now, period)]
+    else
+      # Dupe event. This is rare. Just GC and continue.
+      gc_event_list(events, now, period)
+    end
+  end
 
-    [
-      {now, status}
-      | Enum.take_while(events, fn {t, s} -> t > too_old or s == :set end)
-    ]
+  defp gc_event_list(events, now, period) do
+    too_old = now - period
+    Enum.take_while(events, fn {t, s} -> t > too_old or s == :set end)
   end
 
   # Callback for summing on-times and returning once a non-negative result once
