@@ -16,12 +16,13 @@ defmodule Alarmist.WindowTest do
       assert Window.add_event([{-5000, :set}], :clear, 0, 100) == [{0, :clear}, {-5000, :set}]
     end
 
-    test "raises if events added out of order" do
-      assert_raise FunctionClauseError, fn -> Window.add_event([{0, :set}], :clear, -10, 100) end
+    test "ignores redundant events" do
+      assert Window.add_event([{-1, :set}], :set, 0, 100) == [{-1, :set}]
+      assert Window.add_event([{-1, :set}, {-200, :clear}], :set, 0, 100) == [{-1, :set}]
     end
 
-    test "raises on redundant events" do
-      assert_raise FunctionClauseError, fn -> Window.add_event([{0, :set}], :set, -10, 100) end
+    test "raises if events added out of order" do
+      assert_raise FunctionClauseError, fn -> Window.add_event([{0, :set}], :clear, -10, 100) end
     end
   end
 
