@@ -23,6 +23,51 @@ defmodule Alarmist.AlarmIfTest do
     assert IdentityTest.__get_condition__() == expected_result
   end
 
+  test "parameterized identity" do
+    defmodule ParameterizedIdentityTest do
+      use Alarmist.Alarm
+
+      alarm_if do
+        {MyAlarmId, "eth0"}
+      end
+    end
+
+    expected_result = %{
+      rules: [{Alarmist.Ops, :copy, [ParameterizedIdentityTest, {MyAlarmId, "eth0"}]}],
+      temporaries: [],
+      options: %{style: :atom, parameters: []}
+    }
+
+    assert ParameterizedIdentityTest.__get_condition__() == expected_result
+  end
+
+  test "parameterized identity2" do
+    defmodule ParameterizedIdentityTest2 do
+      use Alarmist.Alarm, style: :tagged_tuple, parameters: [:parameter1]
+
+      alarm_if do
+        {MyAlarmId, parameter1}
+      end
+    end
+
+    expected_result = %{
+      options: %{parameters: [:parameter1], style: :tagged_tuple},
+      rules: [
+        {
+          Alarmist.Ops,
+          :copy,
+          [
+            {:alarm_id, {Alarmist.AlarmIfTest.ParameterizedIdentityTest2, :parameter1}},
+            {:alarm_id, {MyAlarmId, :parameter1}}
+          ]
+        }
+      ],
+      temporaries: []
+    }
+
+    assert ParameterizedIdentityTest2.__get_condition__() == expected_result
+  end
+
   test "and" do
     defmodule AndTest do
       use Alarmist.Alarm

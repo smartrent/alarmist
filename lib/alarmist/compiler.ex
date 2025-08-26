@@ -96,8 +96,8 @@ defmodule Alarmist.Compiler do
     {state, Enum.reverse(result)}
   end
 
-  defp resolve(state, [alarm_type | rest], result) when is_atom(alarm_type) do
-    resolve(state, rest, [alarm_type | result])
+  defp resolve(state, [alarm_id | rest], result) when is_alarm_id(alarm_id) do
+    resolve(state, rest, [alarm_id | result])
   end
 
   defp resolve(state, [value | rest], result) do
