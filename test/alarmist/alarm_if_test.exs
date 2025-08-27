@@ -242,6 +242,60 @@ defmodule Alarmist.AlarmIfTest do
     assert CompoundWithNotTest.__get_condition__() == expected_result
   end
 
+  test "function with a not" do
+    defmodule FunctionWithNotTest do
+      use Alarmist.Alarm
+
+      alarm_if do
+        not Id2 and on_time(not ({Id1, "eth0"} and {Id1, "wlan0"}), 1000, 2000)
+      end
+    end
+
+    expected_result = %{
+      options: %{parameters: [], style: :atom},
+      rules: [
+        {
+          Alarmist.Ops,
+          :logical_and,
+          [
+            Alarmist.AlarmIfTest.FunctionWithNotTest,
+            :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.0",
+            :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.3"
+          ]
+        },
+        {
+          Alarmist.Ops,
+          :on_time,
+          [
+            :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.3",
+            :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.2",
+            1000,
+            2000
+          ]
+        },
+        {
+          Alarmist.Ops,
+          :logical_not,
+          [
+            :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.2",
+            :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.1"
+          ]
+        },
+        {Alarmist.Ops, :logical_and,
+         [:"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.1", {Id1, "eth0"}, {Id1, "wlan0"}]},
+        {Alarmist.Ops, :logical_not, [:"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.0", Id2]}
+      ],
+      temporaries: [
+        :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.3",
+        :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.2",
+        :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.1",
+        :"Elixir.Alarmist.AlarmIfTest.FunctionWithNotTest.0"
+      ]
+    }
+
+    assert FunctionWithNotTest.__get_condition__() == expected_result
+  end
+
   test "complex alarm_if with module attribute" do
     defmodule ModAttrTest do
       use Alarmist.Alarm
