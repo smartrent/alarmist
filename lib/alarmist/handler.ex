@@ -35,6 +35,10 @@ defmodule Alarmist.Handler do
     gen_event_call(:alarm_handler, __MODULE__, :managed_alarm_ids, timeout)
   end
 
+  def managed_alarm_info(alarm_id) do
+    gen_event_call(:alarm_handler, __MODULE__, {:managed_alarm_info, alarm_id})
+  end
+
   @spec set_alarm_level(Alarmist.alarm_id(), Logger.level()) :: :ok
   def set_alarm_level(alarm_id, level) do
     gen_event_call(:alarm_handler, __MODULE__, {:set_alarm_level, alarm_id, level})
@@ -200,6 +204,10 @@ defmodule Alarmist.Handler do
   def handle_call(:managed_alarm_ids, state) do
     alarm_ids = Engine.managed_alarm_ids(state.engine)
     {:ok, alarm_ids, state}
+  end
+
+  def handle_call({:managed_alarm_info, alarm_id}, state) do
+    {:ok, Engine.managed_alarm_info(state.engine, alarm_id), state}
   end
 
   def handle_call({:set_alarm_level, alarm_id, level}, state) do

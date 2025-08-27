@@ -290,6 +290,12 @@ defmodule Alarmist.Engine do
     Map.keys(engine.registered_conditions)
   end
 
+  @spec managed_alarm_info(t(), Alarmist.alarm_id()) ::
+          {:ok, Alarmist.compiled_condition()} | :error
+  def managed_alarm_info(engine, alarm_id) do
+    Map.fetch(engine.registered_conditions, alarm_id)
+  end
+
   @spec set_alarm_level(t(), Alarmist.alarm_id(), Logger.level()) :: t()
   def set_alarm_level(engine, alarm_id, level) do
     %{engine | alarm_levels: Map.put(engine.alarm_levels, alarm_id, level)}
