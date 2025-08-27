@@ -170,4 +170,14 @@ defmodule Alarmist.Info do
       true -> "#{delta_seconds}s"
     end
   end
+
+  def managed_alarms() do
+    alarm_ids = Alarmist.managed_alarm_ids()
+
+    Enum.each(alarm_ids, fn alarm_id ->
+      IO.puts("#{inspect(alarm_id)}")
+      compiled_condition = Alarmist.Handler.managed_alarm_info(alarm_id)
+      IO.puts(Alarmist.Decompiler.pretty_print(compiled_condition))
+    end)
+  end
 end
