@@ -4,7 +4,7 @@ defmodule Alarmist.DecompilerTest do
   alias Alarmist.Decompiler
 
   defp decompile(compiled) do
-    Decompiler.pretty_print(compiled)
+    Decompiler.pretty_print(compiled, color: false)
   end
 
   test "identity" do
