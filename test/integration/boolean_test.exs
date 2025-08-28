@@ -24,24 +24,18 @@ defmodule Integration.BooleanTest do
     refute_received _
 
     Alarmist.add_managed_alarm(TestAlarm)
-    refute_received _
+    assert_receive %Alarmist.Event{id: TestAlarm, state: :clear}
 
     :alarm_handler.set_alarm({AlarmId1, nil})
     refute_received _
 
     :alarm_handler.set_alarm({AlarmId2, nil})
 
-    assert_receive %Alarmist.Event{
-      id: TestAlarm,
-      state: :set
-    }
+    assert_receive %Alarmist.Event{id: TestAlarm, state: :set}
 
     :alarm_handler.clear_alarm(AlarmId2)
 
-    assert_receive %Alarmist.Event{
-      id: TestAlarm,
-      state: :clear
-    }
+    assert_receive %Alarmist.Event{id: TestAlarm, state: :clear}
 
     :alarm_handler.clear_alarm(AlarmId1)
     refute_receive _
@@ -53,21 +47,15 @@ defmodule Integration.BooleanTest do
     refute_received _
 
     Alarmist.add_managed_alarm(NotNotAlarm)
-    refute_received _
+    assert_receive %Alarmist.Event{id: NotNotAlarm, state: :clear}
 
     :alarm_handler.set_alarm({NotNotTriggerAlarm, nil})
 
-    assert_receive %Alarmist.Event{
-      id: NotNotAlarm,
-      state: :set
-    }
+    assert_receive %Alarmist.Event{id: NotNotAlarm, state: :set}
 
     :alarm_handler.clear_alarm(NotNotTriggerAlarm)
 
-    assert_receive %Alarmist.Event{
-      id: NotNotAlarm,
-      state: :clear
-    }
+    assert_receive %Alarmist.Event{id: NotNotAlarm, state: :clear}
 
     Alarmist.remove_managed_alarm(NotNotAlarm)
   end

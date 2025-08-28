@@ -68,6 +68,7 @@ defmodule Integration.ParameterizedTest do
     Alarmist.add_managed_alarm({CompoundTuple1Alarm, "wlan0"})
     assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "eth0"}, state: :set}
     assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "wlan0"}, state: :set}
+    refute_received _
 
     :alarm_handler.set_alarm({{CompoundTuple1Trigger2Alarm, "eth0"}, nil})
     assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "eth0"}, state: :clear}
@@ -82,7 +83,7 @@ defmodule Integration.ParameterizedTest do
 
     Alarmist.remove_managed_alarm({CompoundTuple1Alarm, "eth0"})
     Alarmist.remove_managed_alarm({CompoundTuple1Alarm, "wlan0"})
-    assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "wlan0"}, state: :clear}
+    assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "wlan0"}, state: :unknown}
     :alarm_handler.clear_alarm(GlobalTriggerAlarm)
     :alarm_handler.clear_alarm({CompoundTuple1Trigger2Alarm, "eth0"})
   end

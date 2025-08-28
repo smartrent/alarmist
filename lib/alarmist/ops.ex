@@ -34,7 +34,12 @@ defmodule Alarmist.Ops do
   @spec copy(engine(), [Alarmist.alarm_id()]) :: engine()
   def copy(engine, [output, input]) do
     {engine, {state, description}} = Engine.cache_get(engine, input)
-    Engine.cache_put(engine, output, state, description)
+
+    if state != :unknown do
+      Engine.cache_put(engine, output, state, description)
+    else
+      engine
+    end
   end
 
   @doc """
@@ -59,7 +64,7 @@ defmodule Alarmist.Ops do
   def logical_not(engine, [output, input]) do
     {engine, {state, _description}} = Engine.cache_get(engine, input)
 
-    new_state = if state == :clear, do: :set, else: :clear
+    new_state = if state == :set, do: :clear, else: :set
     Engine.cache_put(engine, output, new_state, nil)
   end
 
@@ -99,7 +104,7 @@ defmodule Alarmist.Ops do
 
     case state do
       :set -> do_logical_and(engine, rest)
-      :clear -> {engine, :clear}
+      _clear_or_unknown -> {engine, :clear}
     end
   end
 
@@ -137,10 +142,10 @@ defmodule Alarmist.Ops do
   defp do_logical_or(engine, [input | rest]) do
     {engine, {state, _}} = Engine.cache_get(engine, input)
 
-    if state == :clear do
-      do_logical_or(engine, rest)
-    else
+    if state == :set do
       {engine, :set}
+    else
+      do_logical_or(engine, rest)
     end
   end
 
@@ -180,13 +185,13 @@ defmodule Alarmist.Ops do
     {engine, value} = Engine.cache_get(engine, input)
 
     case value do
-      {:clear, _} ->
+      {:set, _} ->
+        Engine.start_timer(engine, output, timeout, :set)
+
+      {_clear_or_unknown, _} ->
         engine
         |> Engine.cancel_timer(output)
         |> Engine.cache_put(output, :clear, nil)
-
-      {:set, _} ->
-        Engine.start_timer(engine, output, timeout, :set)
     end
   end
 
@@ -221,14 +226,14 @@ defmodule Alarmist.Ops do
     {engine, value} = Engine.cache_get(engine, input)
 
     case value do
-      {:clear, _} ->
-        # Do nothing. This alarm is cleared on the timer.
-        engine
-
       {:set, description} ->
         engine
         |> Engine.cache_put(output, :set, description)
         |> Engine.start_timer(output, timeout, :clear)
+
+      {_clear_or_unknown, _} ->
+        # Do nothing. This alarm is cleared on the timer.
+        engine
     end
   end
 

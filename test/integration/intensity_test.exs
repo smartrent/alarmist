@@ -14,6 +14,7 @@ defmodule Integration.IntensityTest do
   test "intensity rules" do
     Alarmist.subscribe(IntensityAlarm)
     Alarmist.add_managed_alarm(IntensityAlarm)
+    assert_receive %Alarmist.Event{id: IntensityAlarm, state: :clear}
 
     # Hammer out the alarms.
     :alarm_handler.set_alarm({IntensityTriggerAlarm, 1})
@@ -46,6 +47,7 @@ defmodule Integration.IntensityTest do
   test "redundant sets are ignored" do
     Alarmist.subscribe(IntensityAlarm)
     Alarmist.add_managed_alarm(IntensityAlarm)
+    assert_receive %Alarmist.Event{id: IntensityAlarm, state: :clear}
 
     Enum.each(1..50, fn i ->
       :alarm_handler.set_alarm({IntensityTriggerAlarm, i})

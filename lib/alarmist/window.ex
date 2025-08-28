@@ -23,8 +23,8 @@ defmodule Alarmist.Window do
   `add_event/4` also garbage collects events that fall outside of the window.
   """
   @spec add_event(event_list(), Alarmist.alarm_state(), integer(), pos_integer()) :: event_list()
-  def add_event([], :clear, _now, _period), do: []
   def add_event([], :set, now, _period), do: [{now, :set}]
+  def add_event([], _clear_or_unknown, _now, _period), do: []
 
   def add_event([{first_time, first_status} | _] = events, status, now, period)
       when now >= first_time do

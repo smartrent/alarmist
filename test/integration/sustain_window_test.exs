@@ -14,26 +14,19 @@ defmodule Integration.SustainWindowTest do
   test "basic case" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # Alarm gets raised when >100ms in a 200ms period
     :alarm_handler.set_alarm({SustainWindowTriggerAlarm, "basic"})
     refute_receive _, 50
 
     # Give the on_time alarm 50ms slack for slow CI
-    assert_receive %Alarmist.Event{
-                     id: SustainWindowAlarm,
-                     state: :set
-                   },
-                   100
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :set}, 100
 
     :alarm_handler.clear_alarm(SustainWindowTriggerAlarm)
 
     # It will go away in 100 ms
-    assert_receive %Alarmist.Event{
-                     id: SustainWindowAlarm,
-                     state: :clear
-                   },
-                   150
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}, 150
 
     Alarmist.remove_managed_alarm(SustainWindowAlarm)
     :alarm_handler.clear_alarm(SustainWindowTriggerAlarm)
@@ -42,6 +35,7 @@ defmodule Integration.SustainWindowTest do
   test "no trigger on accumulation" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # Alarm gets raised when >100ms in a 200ms period
     Enum.each(1..6, fn i ->
@@ -61,6 +55,7 @@ defmodule Integration.SustainWindowTest do
   test "redundant sets are ignored" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # The core implementation has an assumption that there are no
     # duplicate alarm notifications. If the duplicate clear alarms
@@ -82,6 +77,7 @@ defmodule Integration.SustainWindowTest do
   test "redundant clears are ignored" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # The core implementation has an assumption that there are no
     # duplicate alarm notifications. If the duplicate clear alarms

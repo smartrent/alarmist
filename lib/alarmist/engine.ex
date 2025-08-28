@@ -128,6 +128,7 @@ defmodule Alarmist.Engine do
 
   defp to_token({:set, alarm_id, _, _}), do: {:state, alarm_id}
   defp to_token({:clear, alarm_id, _, _}), do: {:state, alarm_id}
+  defp to_token({:forget, alarm_id}), do: {:state, alarm_id}
   defp to_token({:start_timer, alarm_id, _timeout, _value, _timer_id}), do: {:timer, alarm_id}
   defp to_token({:cancel_timer, alarm_id}), do: {:timer, alarm_id}
   defp to_token({:register_remedy, alarm_id, _callback}), do: {:remedy, alarm_id}
@@ -175,7 +176,14 @@ defmodule Alarmist.Engine do
 
   defp remove_alarm_if_exists(engine, alarm_id) do
     if Map.has_key?(engine.registered_conditions, alarm_id) do
-      remove_managed_alarm(engine, alarm_id)
+      new_engine = remove_managed_alarm(engine, alarm_id)
+
+      # This is subtle, but since we're going to re-add the manage alarm immediately,
+      # it is super important to remove actions that would cause transients.
+      new_actions_r =
+        Enum.reject(new_engine.actions_r, fn action -> elem(action, 0) == :forget end)
+
+      %{new_engine | actions_r: new_actions_r}
     else
       engine
     end
@@ -274,7 +282,9 @@ defmodule Alarmist.Engine do
             actions_r: [{:unregister_remedy, managed_alarm_id} | engine.actions_r]
         }
 
-      Enum.reduce(alarm_ids_to_clear, new_engine, fn a, e -> cache_put(e, a, :clear, nil) end)
+      Enum.reduce(alarm_ids_to_clear, new_engine, fn a, e ->
+        e |> cache_forget(a) |> cancel_timer(a)
+      end)
     else
       engine
     end
@@ -364,6 +374,21 @@ defmodule Alarmist.Engine do
         # Ignore redundant clear
         engine
     end
+  end
+
+  @doc """
+  Forget an alarm state
+
+  IMPORTANT: Rules are evaluated on the next call to `run/2` if there was a change.
+  """
+  @spec cache_forget(t(), Alarmist.alarm_id()) :: t()
+  def cache_forget(engine, alarm_id) do
+    new_cache = Map.delete(engine.cache, alarm_id)
+
+    action = {:forget, alarm_id}
+    new_actions_r = [action | engine.actions_r]
+
+    %{engine | cache: new_cache, actions_r: new_actions_r}
   end
 
   @doc false

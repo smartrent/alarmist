@@ -276,6 +276,7 @@ defmodule AlarmistTest do
 
     Alarmist.add_managed_alarm(IdentityAlarm)
     assert_receive %Alarmist.Event{id: IdentityAlarm, state: :set}
+    refute_received _
 
     # Alarms replace each other to make it easier to recover from crashes (just blindly add again)
     Alarmist.add_managed_alarm(IdentityAlarm)
@@ -534,32 +535,23 @@ defmodule AlarmistTest do
 
     Alarmist.add_managed_alarm(IdentityAlarm)
 
-    assert_receive %Alarmist.Event{
-      id: IdentityAlarm,
-      state: :set
-    }
+    assert_receive %Alarmist.Event{id: IdentityAlarm, state: :set}
 
     Alarmist.remove_managed_alarm(IdentityAlarm)
     :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
 
-  test "cleared when rule deleted" do
+  test "unknown when managed rule deleted" do
     Alarmist.subscribe(IdentityAlarm)
     Alarmist.add_managed_alarm(IdentityAlarm)
 
     :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
 
-    assert_receive %Alarmist.Event{
-      id: IdentityAlarm,
-      state: :set
-    }
+    assert_receive %Alarmist.Event{id: IdentityAlarm, state: :set}
 
     Alarmist.remove_managed_alarm(IdentityAlarm)
 
-    assert_receive %Alarmist.Event{
-      id: IdentityAlarm,
-      state: :clear
-    }
+    assert_receive %Alarmist.Event{id: IdentityAlarm, state: :unknown}
 
     :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
