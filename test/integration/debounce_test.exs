@@ -26,51 +26,27 @@ defmodule Integration.DebounceTest do
 
     # Test the transient case
     :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
-
-    assert_receive %Alarmist.Event{
-      id: DebounceTriggerAlarm,
-      state: :set
-    }
+    assert_receive %Alarmist.Event{id: DebounceTriggerAlarm, state: :set}
 
     refute_received _
 
     :alarm_handler.clear_alarm(DebounceTriggerAlarm)
-
-    assert_receive %Alarmist.Event{
-      id: DebounceTriggerAlarm,
-      state: :clear
-    }
+    assert_receive %Alarmist.Event{id: DebounceTriggerAlarm, state: :clear}
 
     refute_receive _
 
     # Test the long alarm case
     :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
-
-    assert_receive %Alarmist.Event{
-      id: DebounceTriggerAlarm,
-      state: :set
-    }
+    assert_receive %Alarmist.Event{id: DebounceTriggerAlarm, state: :set}
 
     refute_receive _
 
-    Process.sleep(100)
-
-    assert_receive %Alarmist.Event{
-      id: DebounceAlarm,
-      state: :set
-    }
+    assert_receive %Alarmist.Event{id: DebounceAlarm, state: :set}, 200
 
     :alarm_handler.clear_alarm(DebounceTriggerAlarm)
 
-    assert_receive %Alarmist.Event{
-      id: DebounceAlarm,
-      state: :clear
-    }
-
-    assert_receive %Alarmist.Event{
-      id: DebounceTriggerAlarm,
-      state: :clear
-    }
+    assert_receive %Alarmist.Event{id: DebounceAlarm, state: :clear}
+    assert_receive %Alarmist.Event{id: DebounceTriggerAlarm, state: :clear}
 
     Alarmist.remove_managed_alarm(DebounceAlarm)
   end
@@ -83,15 +59,10 @@ defmodule Integration.DebounceTest do
     :alarm_handler.clear_alarm(DebounceTriggerAlarm)
     :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
 
-    refute_receive _
+    refute_receive _, 50
+    assert_receive %Alarmist.Event{id: DebounceAlarm, state: :set}
 
-    assert_receive %Alarmist.Event{
-      id: DebounceAlarm,
-      state: :set
-    }
-
-    Process.sleep(200)
-    refute_receive _
+    refute_receive _, 200
 
     Alarmist.remove_managed_alarm(DebounceAlarm)
     :alarm_handler.clear_alarm(DebounceTriggerAlarm)
@@ -105,8 +76,7 @@ defmodule Integration.DebounceTest do
     :alarm_handler.set_alarm({DebounceTriggerAlarm, nil})
     :alarm_handler.clear_alarm(DebounceTriggerAlarm)
 
-    Process.sleep(200)
-    refute_receive _
+    refute_receive _, 200
 
     Alarmist.remove_managed_alarm(DebounceAlarm)
   end
