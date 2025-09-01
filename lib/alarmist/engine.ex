@@ -35,6 +35,7 @@ defmodule Alarmist.Engine do
   @typedoc """
   * `:registered_conditions` - map of alarm_id to its compiled form
   * `:alarm_levels` - map of alarm_id to its severity
+  * `:default_alarm_levels` - default alarm level for a managed alarm (overridden by `:alarm_levels` map)
   * `:alarm_id_to_rules` - map of alarm_id to the list of rules to evaluate (inverse of `:registered_rules`)
   * `:cache` - temporary cache for alarm status while processing rules
   * `:changed_alarm_id` - list of alarm_ids that have changed values
@@ -48,12 +49,12 @@ defmodule Alarmist.Engine do
           registered_conditions: %{Alarmist.alarm_id() => Alarmist.compiled_condition()},
           alarm_levels: %{Alarmist.alarm_id() => Logger.level()},
           alarm_id_to_rules: %{Alarmist.alarm_id() => [Alarmist.rule()]},
-          cache: map,
+          cache: %{Alarmist.alarm_id() => Alarmist.alarm()},
           changed_alarm_ids: [Alarmist.alarm_id()],
           default_alarm_levels: %{Alarmist.alarm_id() => Logger.level()},
-          timers: map(),
+          timers: %{Alarmist.alarm_id() => reference()},
           actions_r: [action()],
-          states: map(),
+          states: %{Alarmist.alarm_id() => any()},
           lookup_fun: alarm_lookup_fun()
         }
 
