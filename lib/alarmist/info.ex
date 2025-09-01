@@ -80,6 +80,7 @@ defmodule Alarmist.Info do
   defp formatter(:__header__, :alarm_id, _), do: {:ok, "ALARM ID"}
   defp formatter(:__header__, :timestamp, _), do: {:ok, "LAST CHANGE"}
   defp formatter(:__header__, :description, _), do: {:ok, "DESCRIPTION"}
+  defp formatter(:__header__, :condition, _), do: {:ok, "CONDITION"}
 
   defp formatter(:timestamp, value, options) do
     {:ok, format_timestamp(value, options)}
@@ -89,6 +90,10 @@ defmodule Alarmist.Info do
 
   defp formatter(:alarm_id, alarm_id, _),
     do: {:ok, [:light_white, inspect(alarm_id), :default_color]}
+
+  defp formatter(:state, :set, _), do: {:ok, [:red, "set", :default_color]}
+  defp formatter(:state, :clear, _), do: {:ok, [:green, "clear", :default_color]}
+  defp formatter(:state, :unknown, _), do: {:ok, [:yellow, "unknown", :default_color]}
 
   defp formatter(_, _, _), do: :default
 
@@ -171,21 +176,23 @@ defmodule Alarmist.Info do
     end
   end
 
+  def get_managed_alarm_info(alarm_id) do
+    condition =
+      case Alarmist.Handler.managed_alarm_info(alarm_id) do
+        {:ok, compiled} -> Alarmist.Decompiler.pretty_print(compiled, line_length: 80)
+        _ -> "N/A"
+      end
+
+    %{alarm_id: alarm_id, state: Alarmist.alarm_state(alarm_id), condition: condition}
+  end
+
   def managed_alarms() do
-    alarm_ids = Alarmist.managed_alarm_ids() |> Enum.sort()
+    data = Alarmist.managed_alarm_ids() |> Enum.sort() |> Enum.map(&get_managed_alarm_info/1)
 
-    data =
-      Enum.map(alarm_ids, fn alarm_id ->
-        {:ok, compiled} = Alarmist.Handler.managed_alarm_info(alarm_id)
-        condition = Alarmist.Decompiler.pretty_print(compiled, line_length: 80)
-
-        %{
-          "Alarm ID" => inspect(alarm_id),
-          "State" => to_string(Alarmist.alarm_state(alarm_id)),
-          "Condition" => condition
-        }
-      end)
-
-    Tablet.puts(data, keys: ["Alarm ID", "State", "Condition"], name: "Managed Alarms")
+    Tablet.puts(data,
+      keys: [:alarm_id, :state, :condition],
+      formatter: &formatter(&1, &2, []),
+      name: "Managed Alarms"
+    )
   end
 end
