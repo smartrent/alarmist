@@ -21,20 +21,12 @@ defmodule Integration.OnTimeTest do
     refute_receive _, 50
 
     # Give the on_time alarm 50ms slack for slow CI
-    assert_receive %Alarmist.Event{
-                     id: OnTimeAlarm,
-                     state: :set
-                   },
-                   100
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :set}, 100
 
     :alarm_handler.clear_alarm(OnTimeTriggerAlarm)
 
     # It will go away in 100 ms
-    assert_receive %Alarmist.Event{
-                     id: OnTimeAlarm,
-                     state: :clear
-                   },
-                   150
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :clear}, 150
 
     Alarmist.remove_managed_alarm(OnTimeAlarm)
     :alarm_handler.clear_alarm(OnTimeTriggerAlarm)
@@ -56,11 +48,7 @@ defmodule Integration.OnTimeTest do
     # 90 ms on, 60 ms off at this point
     :alarm_handler.set_alarm({OnTimeTriggerAlarm, 7})
 
-    assert_receive %Alarmist.Event{
-                     id: OnTimeAlarm,
-                     state: :set
-                   },
-                   15
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :set}, 15
 
     :alarm_handler.clear_alarm(OnTimeTriggerAlarm)
 
@@ -68,11 +56,7 @@ defmodule Integration.OnTimeTest do
     refute_receive _, 10
 
     # 100 ms on, 80 ms off
-    assert_receive %Alarmist.Event{
-                     id: OnTimeAlarm,
-                     state: :clear
-                   },
-                   50
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :clear}, 50
 
     Alarmist.remove_managed_alarm(OnTimeAlarm)
     :alarm_handler.clear_alarm(OnTimeTriggerAlarm)
