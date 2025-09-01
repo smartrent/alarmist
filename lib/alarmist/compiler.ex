@@ -17,6 +17,8 @@ defmodule Alarmist.Compiler do
     :options
   ]
 
+  @function_ops [:unknown_as_set, :debounce, :hold, :intensity, :on_time, :sustain_window]
+
   @spec compile(Alarmist.alarm_type(), [Alarmist.rule()], map()) :: Alarmist.compiled_condition()
   def compile(alarm_type, input_rules, options) do
     result_alarm_id = alarm_type_to_id_form(alarm_type, options)
@@ -69,8 +71,7 @@ defmodule Alarmist.Compiler do
     {%{state | rules: [rule | state.rules]}, result}
   end
 
-  defp do_compile(state, [function1, input | params])
-       when function1 in [:debounce, :hold, :intensity, :on_time, :sustain_window] do
+  defp do_compile(state, [function1, input | params]) when function1 in @function_ops do
     {state, [resolved_input]} = resolve(state, [input])
     {state, result} = make_variable(state)
     rule = mf(function1, [result, resolved_input | params])
@@ -80,9 +81,9 @@ defmodule Alarmist.Compiler do
   defp mf(:and, args), do: {Alarmist.Ops, :logical_and, args}
   defp mf(:or, args), do: {Alarmist.Ops, :logical_or, args}
   defp mf(:not, args), do: {Alarmist.Ops, :logical_not, args}
+  defp mf(:copy, args), do: {Alarmist.Ops, :copy, args}
 
-  defp mf(op, args) when op in [:copy, :debounce, :hold, :intensity, :on_time, :sustain_window],
-    do: {Alarmist.Ops, op, args}
+  defp mf(op, args) when op in @function_ops, do: {Alarmist.Ops, op, args}
 
   defp make_variable(state) do
     temp_type = :"#{state.result_alarm_type}.#{state.temp_counter}"

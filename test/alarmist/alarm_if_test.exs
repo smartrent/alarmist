@@ -69,6 +69,25 @@ defmodule Alarmist.AlarmIfTest do
     assert ParameterizedIdentityTest2.__get_condition__() == expected_result
   end
 
+  test "unknown_as_set" do
+    defmodule UnknownAsSetTest do
+      use Alarmist.Alarm
+
+      alarm_if do
+        unknown_as_set(MyAlarmId)
+      end
+    end
+
+    expected_result = %{
+      rules: [{Alarmist.Ops, :unknown_as_set, [UnknownAsSetTest, MyAlarmId]}],
+      temporaries: [],
+      options: %{style: :atom, parameters: []}
+    }
+
+    assert UnknownAsSetTest.__get_condition__() == expected_result
+    assert UnknownAsSetTest.__get_condition_source__() == "unknown_as_set(MyAlarmId)"
+  end
+
   test "and" do
     defmodule AndTest do
       use Alarmist.Alarm

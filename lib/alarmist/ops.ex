@@ -38,6 +38,32 @@ defmodule Alarmist.Ops do
   end
 
   @doc """
+  Return an alarm as set if it's unknown
+
+  All Alarmist operations except this one treat unknown alarms as cleared. Use
+  this to treat unknown alarms as set. This is useful for detecting initialization
+  failures where the code that should be setting or clearing the alarm doesn't
+  run.
+
+  Example:
+
+  ```elixir
+  defmodule NewAlarm do
+    use Alarmist.Alarm
+
+    alarm_if do
+      unknown_as_set(OriginalAlarm)
+    end
+  end
+  ```
+  """
+  @spec unknown_as_set(engine(), [Alarmist.alarm_id()]) :: engine()
+  def unknown_as_set(engine, [output, input]) do
+    {engine, {state, description}} = Engine.cache_get(engine, input, {:set, nil})
+    Engine.cache_put(engine, output, state, description)
+  end
+
+  @doc """
   Set an alarm when the input alarm is cleared
 
   This is useful for "proof-of-life" alarms where the presence of an alarm is a

@@ -86,6 +86,15 @@ defmodule Alarmist.Alarm do
   end
 
   @doc false
+  defmacro unknown_as_set(expression) do
+    expr_expanded = expand_expression(expression, __CALLER__)
+
+    quote bind_quoted: [expr_expanded: expr_expanded] do
+      [:unknown_as_set, expr_expanded]
+    end
+  end
+
+  @doc false
   defmacro debounce(expression, time) do
     expr_expanded = expand_expression(expression, __CALLER__)
 

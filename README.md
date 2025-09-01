@@ -178,7 +178,8 @@ These alarms could just be due to initialization order where the code that
 reports them hasn't run yet. They could also be due to an Alarm ID being
 misspelled.
 
-Managed alarms treat unknown alarms as cleared in `alarm_if` expressions.
+Managed alarms treat unknown alarms as cleared in `alarm_if` expressions. To
+change this behavior, call `unknown_as_set/1` on the alarm.
 
 Lastly, Alarmist transitions managed alarm IDs to the `:unknown` state in
 `Alarmist.remove_managed_alarm/1`. While it's not common for managed alarms to
@@ -193,15 +194,31 @@ special purpose operators. The following sections document each of these.
 ### Identity
 
 Specifying an `AlarmId` by itself creates a new alarm whose state mirrors the
-original one. In other words, it creates an alias and is useful for decoupling
-the naming of alarms between projects.
+original one. If the alarm state is unknown, the resulting alarm state is clear. It is useful for creating aliases that decouple alarm naming between
+projects.
 
 ```elixir
-defmodule IdenticalAlarm do
+defmodule AliasedAlarm do
   use Alarmist.Alarm
 
   alarm_if do
     SomeOtherAlarmName
+  end
+end
+```
+
+### Unknown as set
+
+The `unknown_as_set/1` function returns an alarm as set whenever its state is
+unknown. It is useful when the lack of an alarm being cleared indicates an
+initialization failure.
+
+```elixir
+defmodule AliasedAlarm2 do
+  use Alarmist.Alarm
+
+  alarm_if do
+    unknown_as_set(SomeOtherAlarmName)
   end
 end
 ```
