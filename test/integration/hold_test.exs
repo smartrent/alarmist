@@ -15,39 +15,18 @@ defmodule Integration.HoldTest do
     Alarmist.subscribe(HoldAlarm)
     Alarmist.subscribe(HoldTriggerAlarm)
     Alarmist.add_managed_alarm(HoldAlarm)
+    assert_receive %Alarmist.Event{id: HoldAlarm, state: :clear}
+
     :alarm_handler.set_alarm({HoldTriggerAlarm, nil})
-
-    assert_receive %Alarmist.Event{
-      id: HoldAlarm,
-      state: :set,
-      description: nil
-    }
-
-    assert_receive %Alarmist.Event{
-      id: HoldTriggerAlarm,
-      state: :set,
-      description: nil
-    }
+    assert_receive %Alarmist.Event{id: HoldAlarm, state: :set, description: nil}
+    assert_receive %Alarmist.Event{id: HoldTriggerAlarm, state: :set, description: nil}
 
     :alarm_handler.clear_alarm(HoldTriggerAlarm)
-
-    assert_receive %Alarmist.Event{
-      id: HoldTriggerAlarm,
-      state: :clear,
-      description: nil,
-      previous_state: :set
-    }
+    assert_receive %Alarmist.Event{id: HoldTriggerAlarm, state: :clear, previous_state: :set}
 
     refute_receive _
 
-    Process.sleep(250)
-
-    assert_receive %Alarmist.Event{
-      id: HoldAlarm,
-      state: :clear,
-      description: nil,
-      previous_state: :set
-    }
+    assert_receive %Alarmist.Event{id: HoldAlarm, state: :clear, previous_state: :set}, 250
 
     Alarmist.remove_managed_alarm(HoldAlarm)
   end

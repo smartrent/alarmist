@@ -128,6 +128,7 @@ defmodule Alarmist.Engine do
 
   defp to_token({:set, alarm_id, _, _}), do: {:state, alarm_id}
   defp to_token({:clear, alarm_id, _, _}), do: {:state, alarm_id}
+  defp to_token({:forget, alarm_id}), do: {:state, alarm_id}
   defp to_token({:start_timer, alarm_id, _timeout, _value, _timer_id}), do: {:timer, alarm_id}
   defp to_token({:cancel_timer, alarm_id}), do: {:timer, alarm_id}
 
@@ -166,6 +167,7 @@ defmodule Alarmist.Engine do
   def add_managed_alarm(engine, alarm_id, compiled_condition) do
     engine
     |> remove_alarm_if_exists(alarm_id)
+    |> cache_put(alarm_id, :clear, nil)
     |> register_condition(alarm_id, compiled_condition)
     |> link_rules(compiled_condition.rules, alarm_id)
     |> do_run([alarm_id])
@@ -233,23 +235,23 @@ defmodule Alarmist.Engine do
       Map.pop(engine.registered_conditions, managed_alarm_id)
 
     if condition do
-      alarm_ids_to_clear = [managed_alarm_id | condition.temporaries]
+      alarm_ids_to_forget = [managed_alarm_id | condition.temporaries]
 
       new_alarm_id_to_rules =
         engine.alarm_id_to_rules
         |> Enum.map(fn {alarm_id, rules} ->
-          new_rules = unlink_rules(rules, alarm_ids_to_clear)
+          new_rules = unlink_rules(rules, alarm_ids_to_forget)
           {alarm_id, new_rules}
         end)
         |> Enum.filter(fn {_alarm_id, rules} -> rules != [] end)
         |> Map.new()
 
       new_states =
-        Enum.reduce(alarm_ids_to_clear, engine.states, fn alarm_id, acc ->
+        Enum.reduce(alarm_ids_to_forget, engine.states, fn alarm_id, acc ->
           Map.delete(acc, alarm_id)
         end)
 
-      new_levels = Map.drop(engine.default_alarm_levels, alarm_ids_to_clear)
+      new_levels = Map.drop(engine.default_alarm_levels, alarm_ids_to_forget)
 
       new_engine =
         %{
@@ -260,7 +262,9 @@ defmodule Alarmist.Engine do
             states: new_states
         }
 
-      Enum.reduce(alarm_ids_to_clear, new_engine, fn a, e -> cache_put(e, a, :clear, nil) end)
+      Enum.reduce(alarm_ids_to_forget, new_engine, fn a, e ->
+        e |> cache_forget(a) |> cancel_timer(a)
+      end)
     else
       engine
     end
@@ -287,17 +291,28 @@ defmodule Alarmist.Engine do
   end
 
   @doc false
-  @spec cache_get(t(), Alarmist.alarm_id()) ::
+  @spec cache_get(
+          t(),
+          Alarmist.alarm_id(),
+          {Alarmist.alarm_state(), Alarmist.alarm_description()}
+        ) ::
           {t(), {Alarmist.alarm_state(), Alarmist.alarm_description()}}
-  def cache_get(engine, alarm_id) do
-    case Map.fetch(engine.cache, alarm_id) do
-      {:ok, result} ->
-        {engine, result}
+  def cache_get(engine, alarm_id, state_if_unknown) do
+    with :error <- fetch_cache(engine, alarm_id),
+         :unknown <- lookup_alarm_state(engine, alarm_id) do
+      # If unknown, don't cache anything and just return the default.
+      {engine, state_if_unknown}
+    end
+  end
 
-      :error ->
-        value = engine.lookup_fun.(alarm_id)
+  defp fetch_cache(engine, alarm_id) do
+    with {:ok, result} <- Map.fetch(engine.cache, alarm_id), do: {engine, result}
+  end
 
-        {put_cache(engine, alarm_id, value), value}
+  defp lookup_alarm_state(engine, alarm_id) do
+    case engine.lookup_fun.(alarm_id) do
+      {state, _} = v when state in [:set, :clear] -> {put_cache(engine, alarm_id, v), v}
+      _other -> :unknown
     end
   end
 
@@ -318,7 +333,7 @@ defmodule Alarmist.Engine do
   @spec cache_put(t(), Alarmist.alarm_id(), Alarmist.alarm_state(), Alarmist.alarm_description()) ::
           t()
   def cache_put(engine, alarm_id, alarm_state, description) do
-    {engine, current_state} = cache_get(engine, alarm_id)
+    {engine, current_state} = cache_get(engine, alarm_id, {:unknown, nil})
     level = engine.alarm_levels[alarm_id] || engine.default_alarm_levels[alarm_id] || :warning
 
     case {current_state, {alarm_state, description}} do
@@ -343,6 +358,21 @@ defmodule Alarmist.Engine do
         # Ignore redundant clear
         engine
     end
+  end
+
+  @doc """
+  Forget an alarm state
+
+  IMPORTANT: Rules are evaluated on the next call to `run/2` if there was a change.
+  """
+  @spec cache_forget(t(), Alarmist.alarm_id()) :: t()
+  def cache_forget(engine, alarm_id) do
+    new_cache = Map.delete(engine.cache, alarm_id)
+
+    action = {:forget, alarm_id}
+    new_actions_r = [action | engine.actions_r]
+
+    %{engine | cache: new_cache, actions_r: new_actions_r}
   end
 
   @doc false

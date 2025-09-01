@@ -15,7 +15,8 @@ defmodule Integration.ParameterizedTest do
     Alarmist.subscribe({IdentityTuple1Alarm, :_})
     Alarmist.add_managed_alarm({IdentityTuple1Alarm, "eth0"})
     Alarmist.add_managed_alarm({IdentityTuple1Alarm, "wlan0"})
-    refute_received _
+    assert_receive %Alarmist.Event{id: {IdentityTuple1Alarm, "eth0"}, state: :clear}
+    assert_receive %Alarmist.Event{id: {IdentityTuple1Alarm, "wlan0"}, state: :clear}
 
     :alarm_handler.set_alarm({{IdentityTupleTriggerAlarm, "eth0"}, nil})
     assert_receive %Alarmist.Event{id: {IdentityTuple1Alarm, "eth0"}, state: :set}
@@ -29,9 +30,11 @@ defmodule Integration.ParameterizedTest do
     :alarm_handler.clear_alarm({IdentityTupleTriggerAlarm, "wlan0"})
     assert_receive %Alarmist.Event{id: {IdentityTuple1Alarm, "wlan0"}, state: :clear}
 
-    refute_receive _
     Alarmist.remove_managed_alarm({IdentityTuple1Alarm, "eth0"})
     Alarmist.remove_managed_alarm({IdentityTuple1Alarm, "wlan0"})
+    assert_receive %Alarmist.Event{id: {IdentityTuple1Alarm, "eth0"}, state: :unknown}
+    assert_receive %Alarmist.Event{id: {IdentityTuple1Alarm, "wlan0"}, state: :unknown}
+    Alarmist.unsubscribe({IdentityTuple1Alarm, :_})
   end
 
   test "parameterized trigger alarm" do
@@ -68,6 +71,7 @@ defmodule Integration.ParameterizedTest do
     Alarmist.add_managed_alarm({CompoundTuple1Alarm, "wlan0"})
     assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "eth0"}, state: :set}
     assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "wlan0"}, state: :set}
+    refute_received _
 
     :alarm_handler.set_alarm({{CompoundTuple1Trigger2Alarm, "eth0"}, nil})
     assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "eth0"}, state: :clear}
@@ -82,7 +86,7 @@ defmodule Integration.ParameterizedTest do
 
     Alarmist.remove_managed_alarm({CompoundTuple1Alarm, "eth0"})
     Alarmist.remove_managed_alarm({CompoundTuple1Alarm, "wlan0"})
-    assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "wlan0"}, state: :clear}
+    assert_receive %Alarmist.Event{id: {CompoundTuple1Alarm, "wlan0"}, state: :unknown}
     :alarm_handler.clear_alarm(GlobalTriggerAlarm)
     :alarm_handler.clear_alarm({CompoundTuple1Trigger2Alarm, "eth0"})
   end
@@ -90,7 +94,7 @@ defmodule Integration.ParameterizedTest do
   test "two parameter identity" do
     Alarmist.subscribe({IdentityTuple2Alarm, :_, :_})
     Alarmist.add_managed_alarm({IdentityTuple2Alarm, "param1", "param2"})
-    refute_received _
+    assert_receive %Alarmist.Event{id: {IdentityTuple2Alarm, "param1", "param2"}, state: :clear}
 
     :alarm_handler.set_alarm({{IdentityTupleTriggerAlarm, "param1", "param2"}, nil})
     assert_receive %Alarmist.Event{id: {IdentityTuple2Alarm, "param1", "param2"}, state: :set}
@@ -98,14 +102,20 @@ defmodule Integration.ParameterizedTest do
     :alarm_handler.clear_alarm({IdentityTupleTriggerAlarm, "param1", "param2"})
     assert_receive %Alarmist.Event{id: {IdentityTuple2Alarm, "param1", "param2"}, state: :clear}
 
-    refute_receive _
     Alarmist.remove_managed_alarm({IdentityTuple2Alarm, "param1", "param2"})
+    assert_receive %Alarmist.Event{id: {IdentityTuple2Alarm, "param1", "param2"}, state: :unknown}
+
+    Alarmist.unsubscribe({IdentityTuple2Alarm, :_, :_})
   end
 
   test "three parameter identity" do
     Alarmist.subscribe({IdentityTuple3Alarm, :_, :_, :_})
     Alarmist.add_managed_alarm({IdentityTuple3Alarm, "param1", "param2", "param3"})
-    refute_received _
+
+    assert_receive %Alarmist.Event{
+      id: {IdentityTuple3Alarm, "param1", "param2", "param3"},
+      state: :clear
+    }
 
     :alarm_handler.set_alarm({{IdentityTupleTriggerAlarm, "param1", "param2", "param3"}, nil})
 
@@ -121,7 +131,13 @@ defmodule Integration.ParameterizedTest do
       state: :clear
     }
 
-    refute_receive _
     Alarmist.remove_managed_alarm({IdentityTuple3Alarm, "param1", "param2", "param3"})
+
+    assert_receive %Alarmist.Event{
+      id: {IdentityTuple3Alarm, "param1", "param2", "param3"},
+      state: :unknown
+    }
+
+    Alarmist.unsubscribe({IdentityTuple3Alarm, :_, :_, :_})
   end
 end

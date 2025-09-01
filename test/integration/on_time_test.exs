@@ -14,6 +14,7 @@ defmodule Integration.OnTimeTest do
   test "basic case" do
     Alarmist.subscribe(OnTimeAlarm)
     Alarmist.add_managed_alarm(OnTimeAlarm)
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :clear}
 
     # Alarm gets raised when >100ms in a 200ms period
     :alarm_handler.set_alarm({OnTimeTriggerAlarm, "basic"})
@@ -42,6 +43,7 @@ defmodule Integration.OnTimeTest do
   test "accumulated case" do
     Alarmist.subscribe(OnTimeAlarm)
     Alarmist.add_managed_alarm(OnTimeAlarm)
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :clear}
 
     # Alarm gets raised when >100ms in a 200ms period
     Enum.each(1..6, fn i ->
@@ -79,6 +81,7 @@ defmodule Integration.OnTimeTest do
   test "redundant sets are ignored" do
     Alarmist.subscribe(OnTimeAlarm)
     Alarmist.add_managed_alarm(OnTimeAlarm)
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :clear}
 
     # The core implementation has an assumption that there are no
     # duplicate alarm notifications. If the duplicate clear alarms
@@ -100,6 +103,7 @@ defmodule Integration.OnTimeTest do
   test "redundant clears are ignored" do
     Alarmist.subscribe(OnTimeAlarm)
     Alarmist.add_managed_alarm(OnTimeAlarm)
+    assert_receive %Alarmist.Event{id: OnTimeAlarm, state: :clear}
 
     # The core implementation has an assumption that there are no
     # duplicate alarm notifications. If the duplicate clear alarms

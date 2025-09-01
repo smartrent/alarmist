@@ -171,6 +171,20 @@ doesn't know what network interfaces are available, so application code needs
 to call `Alarmist.add_managed_alarm/1` with each possibility. I.e.,
 `Alarmist.add_managed_alarm({NetworkDownAlarm, "eth0"})`
 
+### Unknown alarm handling
+
+Alarm IDs that haven't been set or cleared yet are reported as `:unknown`.
+These alarms could just be due to initialization order where the code that
+reports them hasn't run yet. They could also be due to an Alarm ID being
+misspelled.
+
+Managed alarms treat unknown alarms as cleared in `alarm_if` expressions.
+
+Lastly, Alarmist transitions managed alarm IDs to the `:unknown` state in
+`Alarmist.remove_managed_alarm/1`. While it's not common for managed alarms to
+be removed in production use, if they were, any code listening for events from
+them would notice it.
+
 ## Managed alarm operators
 
 Managed alarms defined with `alarm_if` support boolean operators and a few

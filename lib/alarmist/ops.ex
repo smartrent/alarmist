@@ -33,7 +33,7 @@ defmodule Alarmist.Ops do
   """
   @spec copy(engine(), [Alarmist.alarm_id()]) :: engine()
   def copy(engine, [output, input]) do
-    {engine, {state, description}} = Engine.cache_get(engine, input)
+    {engine, {state, description}} = Engine.cache_get(engine, input, {:clear, nil})
     Engine.cache_put(engine, output, state, description)
   end
 
@@ -57,7 +57,7 @@ defmodule Alarmist.Ops do
   """
   @spec logical_not(engine(), [Alarmist.alarm_id()]) :: engine()
   def logical_not(engine, [output, input]) do
-    {engine, {state, _description}} = Engine.cache_get(engine, input)
+    {engine, {state, _description}} = Engine.cache_get(engine, input, {:clear, nil})
 
     new_state = if state == :clear, do: :set, else: :clear
     Engine.cache_put(engine, output, new_state, nil)
@@ -95,7 +95,7 @@ defmodule Alarmist.Ops do
   end
 
   defp do_logical_and(engine, [input | rest]) do
-    {engine, {state, _}} = Engine.cache_get(engine, input)
+    {engine, {state, _}} = Engine.cache_get(engine, input, {:clear, nil})
 
     case state do
       :set -> do_logical_and(engine, rest)
@@ -135,7 +135,7 @@ defmodule Alarmist.Ops do
   end
 
   defp do_logical_or(engine, [input | rest]) do
-    {engine, {state, _}} = Engine.cache_get(engine, input)
+    {engine, {state, _}} = Engine.cache_get(engine, input, {:clear, nil})
 
     if state == :clear do
       do_logical_or(engine, rest)
@@ -177,7 +177,7 @@ defmodule Alarmist.Ops do
   """
   @spec debounce(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def debounce(engine, [output, input, timeout]) do
-    {engine, value} = Engine.cache_get(engine, input)
+    {engine, value} = Engine.cache_get(engine, input, {:clear, nil})
 
     case value do
       {:clear, _} ->
@@ -218,7 +218,7 @@ defmodule Alarmist.Ops do
   """
   @spec hold(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def hold(engine, [output, input, timeout]) do
-    {engine, value} = Engine.cache_get(engine, input)
+    {engine, value} = Engine.cache_get(engine, input, {:clear, nil})
 
     case value do
       {:clear, _} ->
@@ -264,7 +264,7 @@ defmodule Alarmist.Ops do
   def intensity(engine, [output, input, count, period]) do
     now = System.monotonic_time(:millisecond)
 
-    {engine, {status, _description}} = Engine.cache_get(engine, input)
+    {engine, {status, _description}} = Engine.cache_get(engine, input, {:clear, nil})
 
     events =
       Engine.get_state(engine, output, [])
@@ -306,7 +306,7 @@ defmodule Alarmist.Ops do
   def on_time(engine, [output, input, on_time, period]) do
     now = System.monotonic_time(:millisecond)
 
-    {engine, {status, _description}} = Engine.cache_get(engine, input)
+    {engine, {status, _description}} = Engine.cache_get(engine, input, {:clear, nil})
 
     events =
       Engine.get_state(engine, output, [])
@@ -353,7 +353,7 @@ defmodule Alarmist.Ops do
   def sustain_window(engine, [output, input, on_time, period]) do
     now = System.monotonic_time(:millisecond)
 
-    {engine, {status, _description}} = Engine.cache_get(engine, input)
+    {engine, {status, _description}} = Engine.cache_get(engine, input, {:clear, nil})
 
     events =
       Engine.get_state(engine, output, [])

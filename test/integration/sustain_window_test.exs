@@ -14,6 +14,7 @@ defmodule Integration.SustainWindowTest do
   test "basic case" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # Alarm gets raised when >100ms in a 200ms period
     :alarm_handler.set_alarm({SustainWindowTriggerAlarm, "basic"})
@@ -34,6 +35,7 @@ defmodule Integration.SustainWindowTest do
   test "no trigger on accumulation" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # Alarm gets raised when >100ms in a 200ms period
     Enum.each(1..6, fn i ->
@@ -53,6 +55,7 @@ defmodule Integration.SustainWindowTest do
   test "redundant sets are ignored" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # The core implementation has an assumption that there are no
     # duplicate alarm notifications. If the duplicate clear alarms
@@ -74,6 +77,7 @@ defmodule Integration.SustainWindowTest do
   test "redundant clears are ignored" do
     Alarmist.subscribe(SustainWindowAlarm)
     Alarmist.add_managed_alarm(SustainWindowAlarm)
+    assert_receive %Alarmist.Event{id: SustainWindowAlarm, state: :clear}
 
     # The core implementation has an assumption that there are no
     # duplicate alarm notifications. If the duplicate clear alarms

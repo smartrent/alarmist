@@ -272,9 +272,10 @@ defmodule AlarmistTest do
 
   test "adding an alarm many times" do
     Alarmist.subscribe(IdentityAlarm)
-    :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
 
     Alarmist.add_managed_alarm(IdentityAlarm)
+    assert_receive %Alarmist.Event{id: IdentityAlarm, state: :clear}
+    :alarm_handler.set_alarm({IdentityTriggerAlarm, nil})
     assert_receive %Alarmist.Event{id: IdentityAlarm, state: :set}
     refute_received _
 
@@ -541,7 +542,7 @@ defmodule AlarmistTest do
     :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
 
-  test "cleared when rule deleted" do
+  test "unknown when managed rule deleted" do
     Alarmist.subscribe(IdentityAlarm)
     Alarmist.add_managed_alarm(IdentityAlarm)
 
@@ -550,6 +551,8 @@ defmodule AlarmistTest do
     assert_receive %Alarmist.Event{id: IdentityAlarm, state: :set}
 
     Alarmist.remove_managed_alarm(IdentityAlarm)
+    assert_receive %Alarmist.Event{id: IdentityAlarm, state: :unknown}
+
     :alarm_handler.clear_alarm(IdentityTriggerAlarm)
   end
 

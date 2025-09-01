@@ -24,7 +24,7 @@ defmodule Integration.BooleanTest do
     refute_received _
 
     Alarmist.add_managed_alarm(TestAlarm)
-    refute_received _
+    assert_receive %Alarmist.Event{id: TestAlarm, state: :clear}
 
     :alarm_handler.set_alarm({AlarmId1, nil})
     refute_received _
@@ -47,7 +47,7 @@ defmodule Integration.BooleanTest do
     refute_received _
 
     Alarmist.add_managed_alarm(NotNotAlarm)
-    refute_received _
+    assert_receive %Alarmist.Event{id: NotNotAlarm, state: :clear}
 
     :alarm_handler.set_alarm({NotNotTriggerAlarm, nil})
 
