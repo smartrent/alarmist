@@ -299,7 +299,7 @@ defmodule Alarmist.Ops do
     {new_status, time_to_next} = Window.check_frequency_alarm(events, count, period, now)
 
     engine
-    |> Engine.cache_put(output, new_status, [])
+    |> Engine.cache_put(output, new_status, nil)
     |> engine_update_timer(output, time_to_next, new_status)
     |> Engine.set_state(output, events)
   end
@@ -341,7 +341,7 @@ defmodule Alarmist.Ops do
     {new_status, time_to_next} = Window.check_cumulative_alarm(events, on_time, period, now)
 
     engine
-    |> Engine.cache_put(output, new_status, [])
+    |> Engine.cache_put(output, new_status, nil)
     |> engine_update_timer(output, time_to_next, new_status)
     |> Engine.set_state(output, events)
   end
@@ -388,7 +388,7 @@ defmodule Alarmist.Ops do
     {new_status, time_to_next} = Window.check_single_duration_alarm(events, on_time, period, now)
 
     engine
-    |> Engine.cache_put(output, new_status, [])
+    |> Engine.cache_put(output, new_status, nil)
     |> engine_update_timer(output, time_to_next, new_status)
     |> Engine.set_state(output, events)
   end

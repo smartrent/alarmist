@@ -407,7 +407,7 @@ defmodule Alarmist.Engine do
       new_engine = %{engine | timers: new_timers}
 
       case value do
-        :set -> set_alarm(new_engine, expiry_alarm_id, [])
+        :set -> set_alarm(new_engine, expiry_alarm_id, nil)
         :clear -> clear_alarm(new_engine, expiry_alarm_id)
       end
     else

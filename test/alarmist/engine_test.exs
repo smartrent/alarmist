@@ -63,7 +63,7 @@ defmodule Alarmist.EngineTest do
     test "redundant set alarms" do
       engine =
         Engine.init(&always_set_lookup_fun/1)
-        |> Engine.set_alarm(:my_alarm_id, [])
+        |> Engine.set_alarm(:my_alarm_id, nil)
 
       {_engine, side_effects} = Engine.commit_side_effects(engine)
       assert side_effects == []
@@ -102,5 +102,5 @@ defmodule Alarmist.EngineTest do
   end
 
   defp always_clear_lookup_fun(_alarm_id), do: {:clear, nil}
-  defp always_set_lookup_fun(_alarm_id), do: {:set, []}
+  defp always_set_lookup_fun(_alarm_id), do: {:set, nil}
 end
