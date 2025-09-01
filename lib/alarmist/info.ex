@@ -172,12 +172,20 @@ defmodule Alarmist.Info do
   end
 
   def managed_alarms() do
-    alarm_ids = Alarmist.managed_alarm_ids()
+    alarm_ids = Alarmist.managed_alarm_ids() |> Enum.sort()
 
-    Enum.each(alarm_ids, fn alarm_id ->
-      IO.puts("#{inspect(alarm_id)}")
-      compiled_condition = Alarmist.Handler.managed_alarm_info(alarm_id)
-      IO.puts(Alarmist.Decompiler.pretty_print(compiled_condition))
-    end)
+    data =
+      Enum.map(alarm_ids, fn alarm_id ->
+        {:ok, compiled} = Alarmist.Handler.managed_alarm_info(alarm_id)
+        condition = Alarmist.Decompiler.pretty_print(compiled, line_length: 80)
+
+        %{
+          "Alarm ID" => inspect(alarm_id),
+          "State" => to_string(Alarmist.alarm_state(alarm_id)),
+          "Condition" => condition
+        }
+      end)
+
+    Tablet.puts(data, keys: ["Alarm ID", "State", "Condition"], name: "Managed Alarms")
   end
 end
