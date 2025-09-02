@@ -47,4 +47,23 @@ defmodule Alarmist.RemedySupervisor do
   def stop_worker(alarm_id) do
     RemedyWorker.stop(alarm_id)
   end
+
+  @spec remedies() :: %{Alarmist.alarm_id() => %{remedy: Alarmist.remedy()}}
+  def remedies() do
+    DynamicSupervisor.which_children(Alarmist.Remedy.DynamicSupervisor)
+    |> Enum.map(&remedy_state/1)
+    |> Map.new()
+  end
+
+  defp remedy_state({:undefined, pid, :worker, _}) do
+    {state, data} = :sys.get_state(pid)
+
+    {data.alarm_id,
+     %{
+       remedy:
+         {data.raw_callback,
+          retry_timeout: data.retry_timeout, callback_timeout: data.callback_timeout},
+       state: state
+     }}
+  end
 end
