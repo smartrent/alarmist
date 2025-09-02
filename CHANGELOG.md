@@ -2,6 +2,54 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.4.0 - 2025-09-01
+
+This update has many changes that are intended to be backwards compatible. The
+minor version bump is made out of an abundance of caution due to the alarm
+description change noted below.
+
+* New features
+  * Support registering callback functions, called remedies, to alarm IDs to fix
+    the issue that caused the alarm to be set. Managed alarms support automatic
+    registration of remedies. This feature doesn't add anything that couldn't
+    have been done before, but it reduces boilerplate and some subtle error
+    handling code.
+
+  * Add `unknown_as_set/1` function for use in `alarm_if` expressions to assume
+    an alarm is set if it hasn't been set or cleared yet. This is useful since
+    unknown alarms are assumed to be cleared everywhere else.
+
+  * Add `Alarmist.alarm_state/1` for getting the state of a single alarm. This
+    function can return `:unknown` if Alarmist doesn't know anything about the
+    alarm.
+
+  * Add `Alarmist.Event.timestamp_to_utc/2` helper function for converting the
+    monotonic timestamps in event messages to UTC.
+
+  * Add `on_time/3` function for use in `alarm_if` expressions. This function
+    tracks the cumulative time that an alarm has been set in an interval. If
+    that exceeds a threshold, it returns that a set status.
+
+  * Add `sustain_window/3` function for use in `alarm_if` expressions. This
+    function tracks the longest continuous interval that an alarm has been set
+    within an interval. If it is above a threshold, then it returns a set status.
+
+* Changes
+  * Always send alarm events when managed alarms are added or removed. On
+    removal, the alarm transitions to the `:unknown` state. Previously unknown
+    and clear were considered equivalent so they did not trigger an event.
+
+  * For internally generated `:set` events, always set the description to `nil`.
+    Previously, some sets had empty list descriptions.
+
+  * Change `Alarmist.info/1` to only show set alarms by default. Cleared alarms
+    can be shown as well via an option, but they were removed since they could
+    make the set alarms scroll off the terminal in production systems.
+
+* Fixes
+  * Fix exception that's raised when an Alarmist call times out. Thanks to
+    @jjcarstens for this fix.
+
 ## v0.3.1 - 2025-06-10
 
 * Updates
