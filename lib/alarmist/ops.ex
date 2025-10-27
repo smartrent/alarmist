@@ -244,17 +244,35 @@ defmodule Alarmist.Ops do
   """
   @spec hold(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def hold(engine, [output, input, timeout]) do
-    {engine, value} = Engine.cache_get(engine, input, {:clear, nil})
+    {engine, {input_state, description}} = Engine.cache_get(engine, input, {:clear, nil})
+    {engine, {output_state, _}} = Engine.cache_get(engine, output, {:clear, nil})
+    now = System.monotonic_time(:millisecond)
+    original_set = Engine.get_state(engine, output, now)
+    remaining = timeout - (now - original_set)
 
-    case value do
-      {:clear, _} ->
-        # Do nothing. This alarm is cleared on the timer.
-        engine
-
-      {:set, description} ->
+    cond do
+      input_state == :set and output_state == :clear ->
+        # When the `input` is set, ensure the `output` is set and cancel any
+        # possibly existing clear timers, the `input` alarm will hold the `output` for us
         engine
         |> Engine.cache_put(output, :set, description)
-        |> Engine.start_timer(output, timeout, :clear)
+        |> Engine.set_state(output, now)
+        |> Engine.cancel_timer(output)
+
+      input_state == :clear and output_state == :set and remaining <= 0 ->
+        # Cleared and hold time has passed, so clear like normal
+        engine
+        |> Engine.set_state(output, nil)
+        |> Engine.cache_put(output, :clear, nil)
+
+      input_state == :clear and output_state == :set ->
+        # Cleared, but need to hold for the remaining time
+        engine
+        |> Engine.start_timer(output, remaining, :clear)
+
+      true ->
+        # Redundant sets and clears shouldn't get through.
+        engine
     end
   end
 
