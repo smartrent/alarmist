@@ -95,6 +95,9 @@ defmodule Alarmist.MixProject do
   defp before_closing_body_tag(:html) do
     """
     <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/wavedrom@3.5.0/skins/default.js" type="text/javascript"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/wavedrom@3.5.0/wavedrom.min.js" type="text/javascript"></script>
+
     <script>
       let initialized = false;
 
@@ -119,6 +122,17 @@ defmodule Alarmist.MixProject do
             preEl.insertAdjacentElement("afterend", graphEl);
             preEl.remove();
           });
+        }
+        id = 0;
+        for (const codeEl of document.querySelectorAll("pre code.wavedrom")) {
+          const preEl = codeEl.parentElement;
+          const waveDefinition = JSON.parse(codeEl.textContent);
+          const waveEl = document.createElement("div");
+          waveEl.id = 'WaveDrom_Display_' + id;
+          preEl.insertAdjacentElement("afterend", waveEl);
+          preEl.remove();
+          WaveDrom.RenderWaveForm(id, waveDefinition, 'WaveDrom_Display_', id != 0);
+          id++;
         }
       });
     </script>

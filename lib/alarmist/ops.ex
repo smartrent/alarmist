@@ -30,6 +30,13 @@ defmodule Alarmist.Ops do
     end
   end
   ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "OriginalAlarm", "wave": "lhl"},
+    {"name": "NewAlarm", "wave": "lhl"}
+  ]}
+  ```
   """
   @spec copy(engine(), [Alarmist.alarm_id()]) :: engine()
   def copy(engine, [output, input]) do
@@ -56,6 +63,13 @@ defmodule Alarmist.Ops do
     end
   end
   ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "OriginalAlarm", "wave": "xlh"},
+    {"name": "NewAlarm", "wave": "hlh"}
+  ]}
+  ```
   """
   @spec unknown_as_set(engine(), [Alarmist.alarm_id()]) :: engine()
   def unknown_as_set(engine, [output, input]) do
@@ -79,6 +93,13 @@ defmodule Alarmist.Ops do
       not OriginalAlarm
     end
   end
+  ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "OriginalAlarm", "wave": "lhl"},
+    {"name": "NewAlarm", "wave": "hlh"}
+  ]}
   ```
   """
   @spec logical_not(engine(), [Alarmist.alarm_id()]) :: engine()
@@ -108,6 +129,14 @@ defmodule Alarmist.Ops do
       Alarm1 and Alarm2
     end
   end
+  ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "Alarm1",   "wave": "l.h..l."},
+    {"name": "Alarm2",   "wave": "l..h..l"},
+    {"name": "NewAlarm", "wave": "l..h.l."}
+  ]}
   ```
   """
   @spec logical_and(engine(), [Alarmist.alarm_id()]) :: engine()
@@ -148,6 +177,14 @@ defmodule Alarmist.Ops do
       Alarm1 or Alarm2
     end
   end
+  ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "Alarm1",   "wave": "l.h.l.."},
+    {"name": "Alarm2",   "wave": "l..h.l."},
+    {"name": "NewAlarm", "wave": "l.h..l."}
+  ]}
   ```
   """
   @spec logical_or(engine(), [Alarmist.alarm_id()]) :: engine()
@@ -200,6 +237,13 @@ defmodule Alarmist.Ops do
     end
   end
   ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "Alarm1", "wave": "lplh.l"},
+    {"name": "NewAlarm", "wave": "l..nhl"}
+  ]}
+  ```
   """
   @spec debounce(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def debounce(engine, [output, input, timeout]) do
@@ -240,6 +284,13 @@ defmodule Alarmist.Ops do
       hold(Alarm1, 1_000)
     end
   end
+  ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "Alarm1", "wave": "lpl.h.l."},
+    {"name": "NewAlarm", "wave": "lhl.h.l."}
+  ]}
   ```
   """
   @spec hold(engine(), [Alarmist.alarm_id(), ...]) :: engine()
@@ -303,6 +354,13 @@ defmodule Alarmist.Ops do
     end
   end
   ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "Alarm1", "wave": "p..l."},
+    {"name": "NewAlarm", "wave": "l.h.p"}
+  ]}
+  ```
   """
   @spec intensity(engine(), [Alarmist.alarm_id(), ...]) :: engine()
   def intensity(engine, [output, input, count, period]) do
@@ -344,6 +402,13 @@ defmodule Alarmist.Ops do
       on_time(Alarm1, 30_000, 60_000)
     end
   end
+  ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "Alarm1", "wave": "phhh..l.."},
+    {"name": "NewAlarm", "wave": "l....h..l"}
+  ]}
   ```
   """
   @spec on_time(engine(), [Alarmist.alarm_id(), ...]) :: engine()
@@ -391,6 +456,13 @@ defmodule Alarmist.Ops do
       sustain_window(ConnectedToServer, 30_000, 60_000)
     end
   end
+  ```
+
+  ```wavedrom
+  {"signal": [
+    {"name": "ConnectedToServer", "wave": "l.h...l.h.l"},
+    {"name": "RemotelyFixable", "wave": "l...h....l."}
+  ]}
   ```
   """
   @spec sustain_window(engine(), [Alarmist.alarm_id(), ...]) :: engine()
