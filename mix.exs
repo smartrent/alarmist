@@ -94,7 +94,7 @@ defmodule Alarmist.MixProject do
 
   defp before_closing_body_tag(:html) do
     """
-    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/wavedrom@3.5.0/skins/default.js" type="text/javascript"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/wavedrom@3.5.0/wavedrom.min.js" type="text/javascript"></script>
 
