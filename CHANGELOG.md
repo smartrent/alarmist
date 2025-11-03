@@ -2,6 +2,15 @@
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.4.1 - 2025-11-03
+
+* Bug fixes
+  * Fix `hold` operation to work as originally intended where an alarm would be
+    held in the `set` state for a minimum amount of time. In previous versions,
+    the workaround was to specify `hold(A) || A` where `A` is the alarm of
+    interest. That workaround still works. The previous behavior was to pulse
+    the managed alarm for the specified duration.
+
 ## v0.4.0 - 2025-09-01
 
 This update has many changes that are intended to be backwards compatible. The
